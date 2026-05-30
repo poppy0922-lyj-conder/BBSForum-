@@ -19,11 +19,18 @@
         <a href="${pageContext.request.contextPath}/" class="text-xl font-bold text-red-500 no-underline">
             <i class="fa fa-fire"></i> BBS技术社区
         </a>
-        <nav class="flex gap-1">
+        <nav class="flex gap-1 items-center">
             <a href="${pageContext.request.contextPath}/" class="px-4 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded">首页</a>
             <c:forEach var="cat" items="${sessionScope.categoryList}">
                 <a href="${pageContext.request.contextPath}/category?id=${cat.id}" class="px-4 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded">${cat.name}</a>
             </c:forEach>
+            <!-- 搜索框 -->
+            <form action="${pageContext.request.contextPath}/post/search" method="get" class="ml-4 flex items-center">
+                <input type="text" name="keyword" value="${param.keyword}" placeholder="搜索帖子..." class="w-40 px-3 py-1.5 text-sm border border-gray-300 rounded-l focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-200" maxlength="50">
+                <button type="submit" class="px-3 py-1.5 text-sm bg-gray-100 border border-l-0 border-gray-300 rounded-r text-gray-500 hover:bg-blue-500 hover:text-white hover:border-blue-500 transition cursor-pointer">
+                    <i class="fa fa-search"></i>
+                </button>
+            </form>
         </nav>
         <div class="flex items-center gap-3">
             <c:choose>

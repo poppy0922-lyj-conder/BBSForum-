@@ -129,6 +129,7 @@ mvnw clean compile
 | `/admin` | 管理员后台 | 组员C |
 | `/admin/categories` | 板块管理 | 组员C |
 | `/admin/post/manage` | 帖子管理（置顶/加精） | 组员A |
+| `/post/search?keyword=` | 帖子搜索 | 组员A |
 | `/demand` | 需求列表 | 组员D |
 | `/demand/create` | 发布需求 | 组员D |
 | `/demand/detail?id=` | 需求详情 | 组员D |
@@ -140,7 +141,7 @@ mvnw clean compile
 | 成员 | 模块 | 占比 |
 |------|------|------|
 | 组长 | 帖子核心CRUD + 公共布局 + 首页 | 22% |
-| 组员A | 帖子置顶/加精管理 | 19% |
+| 组员A | 帖子置顶/加精/搜索 | 20% |
 | 组员B | 用户注册/登录/个人中心 | 19% |
 | 组员C | 板块管理 + 帖子编辑 + 分板块展示 | 21% |
 | 组员D | 需求悬赏 + 积分系统 | 19% |
