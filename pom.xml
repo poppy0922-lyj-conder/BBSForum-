@@ -72,6 +72,13 @@
             <version>8.0.33</version>
         </dependency>
 
+        <!-- BCrypt 密码加密（用户系统） -->
+        <dependency>
+            <groupId>org.mindrot</groupId>
+            <artifactId>jbcrypt</artifactId>
+            <version>0.4</version>
+        </dependency>
+
         <!-- Gson JSON处理 -->
         <dependency>
             <groupId>com.google.code.gson</groupId>

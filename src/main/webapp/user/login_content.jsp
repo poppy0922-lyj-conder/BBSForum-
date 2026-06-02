@@ -1,8 +1,14 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <div class="max-w-md mx-auto mt-16">
     <div class="bg-white rounded-lg shadow-sm p-10">
         <h2 class="text-2xl font-bold text-center mb-1">登录</h2>
         <p class="text-center text-gray-400 text-sm mb-7">欢迎回到BBS技术社区</p>
+        <c:if test="${param.registered == '1'}">
+            <div class="flex items-center gap-2 bg-green-50 text-green-700 border border-green-200 rounded px-4 py-2.5 text-sm mb-5">
+                <i class="fa fa-check-circle"></i> 注册成功，请登录
+            </div>
+        </c:if>
         <c:if test="${not empty error}">
             <div class="flex items-center gap-2 bg-red-50 text-red-600 border border-red-200 rounded px-4 py-2.5 text-sm mb-5">
                 <i class="fa fa-exclamation-circle"></i> ${error}

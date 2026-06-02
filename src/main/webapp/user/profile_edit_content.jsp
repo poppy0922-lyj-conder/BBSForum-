@@ -3,6 +3,12 @@
 
 <h2 style="margin-bottom:20px;"><i class="fa fa-edit"></i> 编辑个人资料</h2>
 
+<c:if test="${not empty error}">
+    <div class="alert alert-danger">
+        <i class="fa fa-exclamation-circle"></i> ${error}
+    </div>
+</c:if>
+
 <form action="${pageContext.request.contextPath}/user/profile/edit" method="post">
     <div class="form-group">
         <label for="phone">联系方式</label>
@@ -26,6 +32,12 @@
         <label for="password">新密码（不修改请留空）</label>
         <input type="password" name="password" id="password" class="form-input"
                placeholder="请输入新密码">
+    </div>
+
+    <div class="form-group">
+        <label for="password2">确认新密码</label>
+        <input type="password" name="password2" id="password2" class="form-input"
+               placeholder="再次输入新密码">
     </div>
 
     <div style="display:flex;gap:12px;">

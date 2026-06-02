@@ -1,6 +1,7 @@
 package com.bbs.controller;
 
 import com.bbs.util.DBUtil;
+import com.bbs.util.PasswordUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -13,8 +14,12 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * 用户控制器（简易版，组员B会替换为完整版）
+ * 用户控制器（组员B：用户系统）
  * 负责：登录、注册、退出
+ *
+ * 说明：
+ * - 新注册/改密使用 BCrypt 加密存储
+ * - 兼容历史明文密码：首次明文登录成功后自动升级为 BCrypt
  */
 @WebServlet(name = "user", urlPatterns = {"/user/login", "/user/register", "/logout"})
 public class UserServlet extends HttpServlet {
@@ -59,22 +64,37 @@ public class UserServlet extends HttpServlet {
             return;
         }
 
-        String sql = "SELECT id, username, role, phone, job_type, job_location FROM users WHERE username = ? AND password = ?";
+        String sql = "SELECT id, username, password, role, phone, job_type, job_location, created_at " +
+                "FROM users WHERE username = ?";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, username.trim());
-            ps.setString(2, password.trim());
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
+                    int userId = rs.getInt("id");
+                    String storedPwd = rs.getString("password");
+
+                    // BCrypt 校验 + 旧明文兼容（并自动升级为 BCrypt）
+                    boolean ok = PasswordUtil.verifyAndUpgradeIfLegacy(conn, userId, password.trim(), storedPwd);
+                    if (!ok) {
+                        request.setAttribute("error", "用户名或密码错误");
+                        request.getRequestDispatcher("/user/login.jsp").forward(request, response);
+                        return;
+                    }
+
                     Map<String, Object> user = new HashMap<>();
-                    user.put("id", rs.getInt("id"));
+                    user.put("id", userId);
                     user.put("username", rs.getString("username"));
                     user.put("role", rs.getString("role"));
                     user.put("phone", rs.getString("phone") == null ? "" : rs.getString("phone"));
                     user.put("jobType", rs.getString("job_type") == null ? "" : rs.getString("job_type"));
                     user.put("jobLocation", rs.getString("job_location") == null ? "" : rs.getString("job_location"));
+                    Timestamp createdAt = rs.getTimestamp("created_at");
+                    user.put("createdAt", createdAt == null ? "" : createdAt.toString());
 
                     HttpSession session = request.getSession();
+                    // 防止 Session Fixation：登录成功后更换 SessionId
+                    request.changeSessionId();
                     session.setAttribute("user", user);
 
                     response.sendRedirect(request.getContextPath() + "/");
@@ -115,7 +135,8 @@ public class UserServlet extends HttpServlet {
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, username.trim());
-            ps.setString(2, password.trim());
+            // BCrypt hash 存储
+            ps.setString(2, PasswordUtil.hash(password.trim()));
             ps.setString(3, phone == null ? "" : phone.trim());
             ps.setString(4, jobType == null ? "" : jobType.trim());
             ps.setString(5, jobLocation == null ? "" : jobLocation.trim());

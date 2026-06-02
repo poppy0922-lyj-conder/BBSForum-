@@ -25,7 +25,10 @@ CREATE TABLE IF NOT EXISTS users (
     created_at  DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '注册时间'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户表';
 
--- 插入默认管理员 admin / admin123
+-- 插入默认账号（演示账号）
+-- 注意：此处密码为明文，配合后端“首次登录成功后自动升级为 BCrypt”的兼容策略
+-- - admin / admin123（管理员）
+-- - test  / test123（普通用户）
 INSERT INTO users (username, password, role) VALUES
 ('admin', 'admin123', 'admin'),
 ('test', 'test123', 'user');
