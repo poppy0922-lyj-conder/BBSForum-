@@ -29,7 +29,7 @@
         <div class="mb-4">
             <label class="block text-sm font-medium text-gray-700 mb-1.5">选择板块 *</label>
             <select name="categoryId" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-200 bg-white" required>
-                <c:forEach var="cat" items="${sessionScope.categoryList}">
+                <c:forEach var="cat" items="${applicationScope.categoryList}">
                     <option value="${cat.id}" ${cat.id == post.categoryId ? 'selected' : ''}>${cat.name}</option>
                 </c:forEach>
             </select>

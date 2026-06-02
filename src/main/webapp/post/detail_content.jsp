@@ -44,7 +44,7 @@
             <span><i class="fa fa-clock-o mr-1"></i> ${post.createdAt}</span>
             <span><i class="fa fa-eye mr-1"></i> ${post.viewCount} 次浏览</span>
         </div>
-        <div id="aiSummaryBox" class="mb-5 <c:if test='${empty post.aiSummary}'>hidden</c:if>">
+        <div id="aiSummaryBox" class="mb-5 <c:if test='${empty sessionScope.user || empty post.aiSummary}'>hidden</c:if>">
             <div class="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg p-4 flex items-start gap-3">
                 <span class="text-lg mt-0.5">🤖</span>
                 <div>
@@ -60,11 +60,9 @@
             <button onclick="history.back()" class="inline-flex items-center gap-1 px-3 py-1.5 text-sm text-gray-500 bg-gray-100 border border-gray-200 rounded hover:bg-gray-200 transition cursor-pointer">
                 <i class="fa fa-arrow-left"></i> 返回
             </button>
-            <c:if test="${not empty sessionScope.user}">
-                <button id="aiBtn" onclick="generateAiSummary(${post.id})" class="inline-flex items-center gap-1 px-3 py-1.5 text-sm text-purple-600 bg-purple-50 border border-purple-200 rounded hover:bg-purple-100 transition cursor-pointer">
-                    <i class="fa fa-magic"></i> <span id="aiBtnText">AI总结</span>
-                </button>
-            </c:if>
+            <button id="aiBtn" onclick="<c:choose><c:when test="${not empty sessionScope.user}">generateAiSummary(${post.id})</c:when><c:otherwise>alert('请先登录后再使用AI总结功能')</c:otherwise></c:choose>" class="inline-flex items-center gap-1 px-3 py-1.5 text-sm text-purple-600 bg-purple-50 border border-purple-200 rounded hover:bg-purple-100 transition cursor-pointer">
+                <i class="fa fa-magic"></i> <span id="aiBtnText">AI总结</span>
+            </button>
             <c:if test="${sessionScope.user.id == post.userId || sessionScope.user.role == 'admin'}">
                 <a href="${pageContext.request.contextPath}/post/edit?id=${post.id}" class="inline-flex items-center gap-1 px-3 py-1.5 text-sm text-blue-600 bg-blue-50 border border-blue-200 rounded hover:bg-blue-100 no-underline transition">
                     <i class="fa fa-edit"></i> 编辑
@@ -142,6 +140,18 @@
                 <i class="fa fa-sign-in"></i> 立即登录
             </a>
         </div>
+        <script>
+        // 未登录时，回复表单区域获得焦点自动弹窗提示
+        document.addEventListener('DOMContentLoaded', function() {
+            var replyForm = document.querySelector('section.bg-white.rounded-lg.shadow-sm form');
+            if (replyForm) {
+                replyForm.addEventListener('click', function(e) {
+                    alert('请先登录后再发表回复');
+                    e.preventDefault();
+                });
+            }
+        });
+        </script>
     </c:otherwise>
 </c:choose>
 

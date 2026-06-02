@@ -14,11 +14,6 @@
             </c:otherwise>
         </c:choose>
     </h2>
-    <c:if test="${not empty sessionScope.user}">
-        <a href="${pageContext.request.contextPath}/post/create" class="inline-flex items-center gap-1 px-5 py-2 bg-red-500 text-white text-sm rounded-md hover:bg-red-600 no-underline transition">
-            <i class="fa fa-plus"></i> 写文章
-        </a>
-    </c:if>
 </div>
 
 <c:choose>
@@ -58,7 +53,7 @@
                                 <a href="${pageContext.request.contextPath}/post/detail?id=${post.id}" class="text-gray-900 hover:text-red-500 no-underline">${post.title}</a>
                             </h3>
                             <p class="text-sm text-gray-500 leading-relaxed mb-3 line-clamp-2">
-                                <c:if test="${not empty post.aiSummary}"><span class="text-purple-500 mr-1">🤖</span></c:if>
+                                <c:if test="${not empty sessionScope.user && not empty post.aiSummary}"><span class="text-purple-500 mr-1">🤖</span></c:if>
                                 ${post.summary}
                             </p>
                             <c:if test="${not empty post.keywords}">
@@ -82,6 +77,42 @@
                 </div>
             </article>
         </c:forEach>
-        <div class="flex justify-center gap-2 mt-8 pb-5">${pagination}</div>
+        <!-- 分页导航 -->
+        <c:if test="${totalPages > 1}">
+            <div class="flex items-center justify-center gap-1 mt-8 pb-5">
+                <c:choose>
+                    <c:when test="${not empty currentCategory}">
+                        <c:set var="pageUrl" value="${pageContext.request.contextPath}/category?id=${currentCategory.id}&page="/>
+                    </c:when>
+                    <c:otherwise>
+                        <c:set var="pageUrl" value="${pageContext.request.contextPath}/?page="/>
+                    </c:otherwise>
+                </c:choose>
+
+                <%-- 上一页 --%>
+                <c:if test="${currentPage > 1}">
+                    <a href="${pageUrl}${currentPage - 1}" class="px-3 py-1.5 text-sm border border-gray-300 rounded text-gray-600 hover:bg-gray-50 no-underline">上一页</a>
+                </c:if>
+
+                <%-- 页码 --%>
+                <c:forEach begin="1" end="${totalPages}" var="i">
+                    <c:choose>
+                        <c:when test="${i == currentPage}">
+                            <span class="px-3 py-1.5 text-sm bg-blue-500 text-white rounded font-medium">${i}</span>
+                        </c:when>
+                        <c:otherwise>
+                            <a href="${pageUrl}${i}" class="px-3 py-1.5 text-sm border border-gray-300 rounded text-gray-600 hover:bg-gray-50 no-underline">${i}</a>
+                        </c:otherwise>
+                    </c:choose>
+                </c:forEach>
+
+                <%-- 下一页 --%>
+                <c:if test="${currentPage < totalPages}">
+                    <a href="${pageUrl}${currentPage + 1}" class="px-3 py-1.5 text-sm border border-gray-300 rounded text-gray-600 hover:bg-gray-50 no-underline">下一页</a>
+                </c:if>
+
+                <span class="text-xs text-gray-400 ml-3">共 ${totalPosts} 篇帖子，${totalPages} 页</span>
+            </div>
+        </c:if>
     </c:otherwise>
 </c:choose>

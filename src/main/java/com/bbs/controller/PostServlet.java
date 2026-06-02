@@ -3,6 +3,7 @@ package com.bbs.controller;
 import com.bbs.util.AiUtil;
 import com.bbs.util.ContentUtil;
 import com.bbs.util.DBUtil;
+import com.bbs.util.PostMapper;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.annotation.WebServlet;
@@ -21,14 +22,18 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * 帖子控制器
  * 负责：查看帖子详情、发布帖子、回复帖子（支持本地上传封面图）
  */
 @WebServlet(name = "post", urlPatterns = {"/post/create", "/post/detail", "/post/reply", "/post/edit", "/post/delete", "/post/uploadImage", "/post/aiSummary"})
-@MultipartConfig(maxFileSize = 5 * 1024 * 1024, location = "")  // 最大5MB
+@MultipartConfig(maxFileSize = 5 * 1024 * 1024, location = "")
 public class PostServlet extends HttpServlet {
+
+    private static final Logger LOG = Logger.getLogger(PostServlet.class.getName());
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -94,7 +99,7 @@ public class PostServlet extends HttpServlet {
             ps.setInt(1, postId);
             ps.executeUpdate();
         } catch (SQLException e) {
-            e.printStackTrace();
+            LOG.log(Level.WARNING, "更新浏览量失败, postId=" + postId, e);
         }
 
         // 2. 查询帖子
@@ -129,14 +134,13 @@ public class PostServlet extends HttpServlet {
                 }
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            LOG.log(Level.SEVERE, "查询帖子详情失败, postId=" + postId, e);
         }
 
         if (post == null) {
             response.sendRedirect(request.getContextPath() + "/");
             return;
         }
-        // 渲染内容（Markdown图片语法 → HTML）
         post.put("contentRendered", ContentUtil.render((String) post.get("content")));
         request.setAttribute("post", post);
 
@@ -162,12 +166,12 @@ public class PostServlet extends HttpServlet {
                 }
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            LOG.log(Level.SEVERE, "查询回复列表失败, postId=" + postId, e);
         }
         request.setAttribute("replyList", replyList);
         request.setAttribute("replyCount", replyList.size());
 
-        // 4. 查询相关帖子（同板块或同关键词）
+        // 4. 查询相关帖子
         loadRelatedPosts(request, postId, (int) post.get("categoryId"), (String) post.get("keywords"));
 
         request.getRequestDispatcher("/post/detail.jsp").forward(request, response);
@@ -180,7 +184,6 @@ public class PostServlet extends HttpServlet {
             "SELECT p.id, p.title, p.view_count, p.created_at, u.username AS author_name " +
             "FROM posts p JOIN users u ON p.user_id = u.id WHERE p.id != ? AND (");
 
-        // 关键词匹配
         if (keywords != null && !keywords.trim().isEmpty()) {
             String[] kws = keywords.split("[,，]");
             for (int i = 0; i < kws.length; i++) {
@@ -190,7 +193,6 @@ public class PostServlet extends HttpServlet {
             sql.append(" OR ");
         }
 
-        // 同板块兜底
         sql.append("p.category_id = ?) ORDER BY p.view_count DESC LIMIT 5");
 
         try (Connection conn = DBUtil.getConnection();
@@ -209,17 +211,11 @@ public class PostServlet extends HttpServlet {
 
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    Map<String, Object> post = new HashMap<>();
-                    post.put("id", rs.getInt("id"));
-                    post.put("title", rs.getString("title"));
-                    post.put("viewCount", rs.getInt("view_count"));
-                    post.put("createdAt", rs.getTimestamp("created_at").toString());
-                    post.put("authorName", rs.getString("author_name"));
-                    list.add(post);
+                    list.add(PostMapper.mapRelatedRow(rs));
                 }
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            LOG.log(Level.WARNING, "查询相关帖子失败, postId=" + postId, e);
         }
 
         request.setAttribute("relatedPosts", list);
@@ -240,14 +236,12 @@ public class PostServlet extends HttpServlet {
         String categoryIdStr = request.getParameter("categoryId");
         String keywords = request.getParameter("keywords");
 
-        // 校验
         if (title == null || title.trim().isEmpty() || content == null || content.trim().isEmpty()) {
             request.setAttribute("error", "标题和内容不能为空");
             request.getRequestDispatcher("/post/create.jsp").forward(request, response);
             return;
         }
 
-        // 处理封面图：优先本地上传，否则用URL
         String imageUrl = saveUploadedImage(request);
         if (imageUrl.isEmpty()) {
             String urlParam = request.getParameter("imageUrl");
@@ -276,12 +270,13 @@ public class PostServlet extends HttpServlet {
             try (ResultSet rs = ps.getGeneratedKeys()) {
                 if (rs.next()) {
                     int newId = rs.getInt(1);
+                    LOG.info("新帖发布成功, postId=" + newId + ", 作者=" + user.get("username"));
                     response.sendRedirect(request.getContextPath() + "/post/detail?id=" + newId);
                     return;
                 }
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            LOG.log(Level.SEVERE, "发布帖子失败", e);
             request.setAttribute("error", "发布失败，请重试");
             request.getRequestDispatcher("/post/create.jsp").forward(request, response);
             return;
@@ -324,8 +319,9 @@ public class PostServlet extends HttpServlet {
             ps.setInt(2, userId);
             ps.setInt(3, postId);
             ps.executeUpdate();
+            LOG.info("新回复成功, postId=" + postId + ", 用户=" + user.get("username"));
         } catch (SQLException e) {
-            e.printStackTrace();
+            LOG.log(Level.SEVERE, "发表回复失败, postId=" + postId, e);
         }
 
         response.sendRedirect(request.getContextPath() + "/post/detail?id=" + postId);
@@ -355,7 +351,6 @@ public class PostServlet extends HttpServlet {
             ps.setInt(1, postId);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    // 权限检查
                     int authorId = rs.getInt("user_id");
                     if (!"admin".equals(user.get("role")) && (int) user.get("id") != authorId) {
                         response.sendRedirect(request.getContextPath() + "/post/detail?id=" + postId);
@@ -376,7 +371,7 @@ public class PostServlet extends HttpServlet {
                 }
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            LOG.log(Level.SEVERE, "查询编辑帖子失败, postId=" + postId, e);
         }
 
         request.getRequestDispatcher("/post/edit.jsp").forward(request, response);
@@ -411,7 +406,6 @@ public class PostServlet extends HttpServlet {
             return;
         }
 
-        // 处理封面图：优先本地上传，否则用URL
         String imageUrl = saveUploadedImage(request);
         if (imageUrl.isEmpty()) {
             String urlParam = request.getParameter("imageUrl");
@@ -440,7 +434,7 @@ public class PostServlet extends HttpServlet {
                 }
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            LOG.log(Level.SEVERE, "检查编辑权限失败, postId=" + postId, e);
         }
 
         String sql = "UPDATE posts SET title=?, content=?, image_url=?, keywords=?, category_id=? WHERE id=?";
@@ -453,8 +447,9 @@ public class PostServlet extends HttpServlet {
             ps.setInt(5, categoryId);
             ps.setInt(6, postId);
             ps.executeUpdate();
+            LOG.info("帖子编辑成功, postId=" + postId + ", 操作者=" + user.get("username"));
         } catch (SQLException e) {
-            e.printStackTrace();
+            LOG.log(Level.SEVERE, "编辑帖子失败, postId=" + postId, e);
         }
 
         response.sendRedirect(request.getContextPath() + "/post/detail?id=" + postId);
@@ -496,21 +491,22 @@ public class PostServlet extends HttpServlet {
                 }
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            LOG.log(Level.SEVERE, "检查删除权限失败, postId=" + postId, e);
         }
 
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement("DELETE FROM posts WHERE id = ?")) {
             ps.setInt(1, postId);
             ps.executeUpdate();
+            LOG.info("帖子删除成功, postId=" + postId + ", 操作者=" + user.get("username"));
         } catch (SQLException e) {
-            e.printStackTrace();
+            LOG.log(Level.SEVERE, "删除帖子失败, postId=" + postId, e);
         }
 
         response.sendRedirect(request.getContextPath() + "/");
     }
 
-    /**  生成AI总结（需登录），返回JSON */
+    /** 生成AI总结（需登录），返回JSON */
     private void handleAiSummary(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         HttpSession session = request.getSession();
@@ -529,7 +525,7 @@ public class PostServlet extends HttpServlet {
             return;
         }
 
-        // 查帖子标题和内容
+        // 使用同一个连接完成查询 + 更新，避免重复连接
         String sql = "SELECT title, content FROM posts WHERE id = ?";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -539,18 +535,18 @@ public class PostServlet extends HttpServlet {
                     String title = rs.getString("title");
                     String content = rs.getString("content");
 
-                    // 调用AI生成总结
                     String summary = AiUtil.generateSummary(title, content);
 
                     if (summary != null) {
-                        // 存入数据库
-                        String updateSql = "UPDATE posts SET ai_summary = ? WHERE id = ?";
-                        try (Connection conn2 = DBUtil.getConnection();
-                             PreparedStatement ps2 = conn2.prepareStatement(updateSql)) {
+                        // 复用同一个连接保存总结，并记录生成者
+                        String updateSql = "UPDATE posts SET ai_summary = ?, ai_user_id = ? WHERE id = ?";
+                        try (PreparedStatement ps2 = conn.prepareStatement(updateSql)) {
                             ps2.setString(1, summary);
-                            ps2.setInt(2, postId);
+                            ps2.setInt(2, (int) ((Map<String, Object>) session.getAttribute("user")).get("id"));
+                            ps2.setInt(3, postId);
                             ps2.executeUpdate();
                         }
+                        LOG.info("AI总结生成成功, postId=" + postId);
 
                         response.setContentType("application/json;charset=UTF-8");
                         response.getWriter().write("{\"summary\":\"" + escapeJson(summary) + "\"}");
@@ -564,7 +560,7 @@ public class PostServlet extends HttpServlet {
                 }
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            LOG.log(Level.SEVERE, "AI总结生成失败, postId=" + postId, e);
             response.setContentType("application/json;charset=UTF-8");
             response.getWriter().write("{\"error\":\"服务器错误\"}");
         }
@@ -587,7 +583,6 @@ public class PostServlet extends HttpServlet {
             return;
         }
 
-        // 返回 Markdown 图片语法，前端直接插入文本框
         response.setContentType("application/json;charset=UTF-8");
         response.getWriter().write("{\"markdown\":\"![图片](" + url + ")\",\"url\":\"" + url + "\"}");
     }
@@ -618,16 +613,13 @@ public class PostServlet extends HttpServlet {
             return "";
         }
 
-        // 只允许图片格式
         String ext = fileName.substring(fileName.lastIndexOf(".")).toLowerCase();
         if (!ext.equals(".jpg") && !ext.equals(".jpeg") && !ext.equals(".png") && !ext.equals(".gif") && !ext.equals(".webp")) {
             return "";
         }
 
-        // 生成唯一文件名
         String newFileName = UUID.randomUUID().toString() + ext;
 
-        // 上传目录: src/main/webapp/uploads/
         String projectRoot = System.getProperty("user.dir");
         File uploadDir = new File(projectRoot, "src/main/webapp/uploads");
         if (!uploadDir.exists()) {

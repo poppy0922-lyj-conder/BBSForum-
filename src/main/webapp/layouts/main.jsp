@@ -21,7 +21,7 @@
         </a>
         <nav class="flex gap-1 items-center">
             <a href="${pageContext.request.contextPath}/" class="px-4 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded">首页</a>
-            <c:forEach var="cat" items="${sessionScope.categoryList}">
+            <c:forEach var="cat" items="${applicationScope.categoryList}">
                 <a href="${pageContext.request.contextPath}/category?id=${cat.id}" class="px-4 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded">${cat.name}</a>
             </c:forEach>
             <!-- 搜索框 -->
@@ -60,7 +60,7 @@
             <div class="px-4 pt-4 pb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">论坛板块</div>
             <ul>
                 <li><a href="${pageContext.request.contextPath}/" class="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-500 no-underline ${empty param.id ? 'bg-blue-50 text-blue-500 font-medium' : ''}"><i class="fa fa-home"></i> 全部帖子</a></li>
-                <c:forEach var="cat" items="${sessionScope.categoryList}">
+                <c:forEach var="cat" items="${applicationScope.categoryList}">
                     <li><a href="${pageContext.request.contextPath}/category?id=${cat.id}" class="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-500 no-underline"><i class="fa fa-folder-o"></i> ${cat.name}</a></li>
                 </c:forEach>
             </ul>

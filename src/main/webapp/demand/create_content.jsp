@@ -13,7 +13,7 @@
         <label for="categoryId">选择板块 *</label>
         <select name="categoryId" id="categoryId" class="form-select" required>
             <option value="">-- 请选择板块 --</option>
-            <c:forEach var="cat" items="${sessionScope.categoryList}">
+            <c:forEach var="cat" items="${applicationScope.categoryList}">
                 <option value="${cat.id}">${cat.name}</option>
             </c:forEach>
         </select>

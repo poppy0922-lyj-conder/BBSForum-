@@ -64,6 +64,7 @@ CREATE TABLE IF NOT EXISTS posts (
     is_top      TINYINT DEFAULT 0 COMMENT '是否置顶 0=否 1=板块置顶 2=全局置顶',
     is_elite    TINYINT DEFAULT 0 COMMENT '是否加精 0=否 1=是',
     ai_summary  TEXT DEFAULT NULL COMMENT 'AI生成的内容总结',
+    ai_user_id  INT DEFAULT NULL COMMENT 'AI总结生成者ID',
     keywords    VARCHAR(200) DEFAULT '' COMMENT '关键词，逗号分隔',
     view_count  INT DEFAULT 0 COMMENT '浏览次数',
     created_at  DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '发布时间',
