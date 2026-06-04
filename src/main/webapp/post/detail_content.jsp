@@ -72,19 +72,24 @@
                 </a>
             </c:if>
             <c:if test="${sessionScope.user.role == 'admin'}">
-                <c:if test="${post.isTop == 0}">
-                    <a href="${pageContext.request.contextPath}/admin/post/top?id=${post.id}&level=1" class="inline-flex items-center gap-1 px-3 py-1.5 text-sm text-orange-600 bg-orange-50 border border-orange-200 rounded hover:bg-orange-100 no-underline transition"><i class="fa fa-arrow-up"></i> 板块置顶</a>
-                    <a href="${pageContext.request.contextPath}/admin/post/top?id=${post.id}&level=2" class="inline-flex items-center gap-1 px-3 py-1.5 text-sm text-orange-600 bg-orange-50 border border-orange-200 rounded hover:bg-orange-100 no-underline transition"><i class="fa fa-arrow-up"></i> 全局置顶</a>
-                </c:if>
-                <c:choose>
-                    <c:when test="${post.isElite == 0}">
-                        <a href="${pageContext.request.contextPath}/admin/post/elite?id=${post.id}&action=add" class="inline-flex items-center gap-1 px-3 py-1.5 text-sm text-pink-600 bg-pink-50 border border-pink-200 rounded hover:bg-pink-100 no-underline transition"><i class="fa fa-diamond"></i> 加精</a>
-                    </c:when>
-                    <c:otherwise>
-                        <a href="${pageContext.request.contextPath}/admin/post/elite?id=${post.id}&action=remove" class="inline-flex items-center gap-1 px-3 py-1.5 text-sm text-pink-600 bg-pink-50 border border-pink-200 rounded hover:bg-pink-100 no-underline transition"><i class="fa fa-diamond"></i> 取消加精</a>
-                    </c:otherwise>
-                </c:choose>
-            </c:if>
+    <button onclick="adminAction('${pageContext.request.contextPath}/admin/post/top', ${post.id}, '板块置顶', '全局置顶', '取消置顶')"
+            class="inline-flex items-center gap-1 px-3 py-1.5 text-sm text-orange-600 bg-orange-50 border border-orange-200 rounded hover:bg-orange-100 transition cursor-pointer active:scale-95">
+        <i class="fa fa-arrow-up"></i>
+        <c:choose>
+            <c:when test="${post.isTop == 0}">设为板块置顶</c:when>
+            <c:when test="${post.isTop == 1}">设为全局置顶</c:when>
+            <c:otherwise>取消置顶</c:otherwise>
+        </c:choose>
+    </button>
+    <button onclick="adminAction('${pageContext.request.contextPath}/admin/post/elite', ${post.id}, '加精', '取消加精')"
+            class="inline-flex items-center gap-1 px-3 py-1.5 text-sm text-pink-600 bg-pink-50 border border-pink-200 rounded hover:bg-pink-100 transition cursor-pointer active:scale-95">
+        <i class="fa fa-diamond"></i>
+        <c:choose>
+            <c:when test="${post.isElite == 0}">加精</c:when>
+            <c:otherwise>取消加精</c:otherwise>
+        </c:choose>
+    </button>
+</c:if>
         </div>
     </div>
 </article>
@@ -182,6 +187,14 @@
 </div><!-- /flex -->
 
 <script>
+    // 当前帖子的状态，供 adminAction 正确显示提示信息
+    window.currentPost = {
+        isTop: ${post.isTop},
+        isElite: ${post.isElite}
+    };
+</script>
+
+<script>
 function generateAiSummary(postId) {
     var btn = document.getElementById('aiBtn');
     var btnText = document.getElementById('aiBtnText');
@@ -214,5 +227,76 @@ function generateAiSummary(postId) {
         btnText.textContent = 'AI总结';
         btn.disabled = false;
     });
+}
+
+function adminAction(url, postId, actionText, actionText2, actionText3) {
+    console.log('开始执行操作:', url, '帖子ID:', postId);
+
+    // 根据URL判断操作类型
+    let actionType = '';
+    let confirmMessage = '';
+
+    if (url.includes('/admin/post/top')) {
+        actionType = '置顶';
+        if (typeof actionText !== 'undefined' && typeof actionText2 !== 'undefined' && typeof actionText3 !== 'undefined') {
+            // 使用全局变量 currentPost
+            if (window.currentPost && typeof window.currentPost.isTop !== 'undefined') {
+                var topStatus = window.currentPost.isTop;
+                if (topStatus === 0) {
+                    confirmMessage = '确定要' + actionText + '此帖子吗？\n\n注意：置顶操作将使帖子在板块列表中置顶显示。';
+                } else if (topStatus === 1) {
+                    confirmMessage = '确定要' + actionText2 + '此帖子吗？\n\n注意：全局置顶将使帖子在首页置顶显示。';
+                } else if (topStatus === 2) {
+                    confirmMessage = '确定要' + actionText3 + '此帖子吗？\n\n注意：取消置顶后帖子将恢复正常显示顺序。';
+                } else {
+                    confirmMessage = '确定要' + actionText + '此帖子吗？';
+                }
+            } else {
+                // 降级提示（理论上不会触发）
+                confirmMessage = '确定要' + actionText + '此帖子吗？';
+            }
+        } else {
+            confirmMessage = '确定要执行置顶操作吗？';
+        }
+    }
+    else if (url.includes('/admin/post/elite')) {
+        actionType = '加精';
+        if (typeof actionText !== 'undefined' && typeof actionText2 !== 'undefined') {
+            if (window.currentPost && typeof window.currentPost.isElite !== 'undefined') {
+                var eliteStatus = window.currentPost.isElite;
+                if (eliteStatus === 0) {
+                    confirmMessage = '确定要' + actionText + '此帖子吗？\n\n注意：加精操作将标记此帖子为优质内容。';
+                } else if (eliteStatus === 1) {
+                    confirmMessage = '确定要' + actionText2 + '此帖子吗？\n\n注意：取消加精后帖子将不再显示精华标记。';
+                } else {
+                    confirmMessage = '确定要' + actionText + '此帖子吗？';
+                }
+            } else {
+                confirmMessage = '确定要' + actionText + '此帖子吗？';
+            }
+        } else {
+            confirmMessage = '确定要执行加精操作吗？';
+        }
+    }
+
+    if (confirm(confirmMessage)) {
+        fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: 'id=' + postId
+        }).then(function(r) {
+            console.log('请求成功:', r);
+            if (r.ok) {
+                location.reload();
+            } else {
+                alert('操作失败，服务器返回: ' + r.status);
+            }
+        }).catch(function(error) {
+            console.error('请求失败:', error);
+            alert('操作失败，请重试: ' + error.message);
+        });
+    } else {
+        console.log('用户取消了操作');
+    }
 }
 </script>

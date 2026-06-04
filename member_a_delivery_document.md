@@ -2,7 +2,7 @@
 
 ## 概述
 
-本文档描述了成员A在BBS论坛系统中实现的功能，包括帖子置顶/加精管理和帖子搜索功能。这些功能为论坛提供了内容管理和检索能力，增强用户体验和管理效率。
+本文档描述了成员A在BBS论坛系统中实现的功能，包括帖子置顶/加精管理、帖子搜索功能和二级确认提示功能。这些功能为论坛提供了内容管理、检索能力和操作安全性，增强用户体验和管理效率。
 
 ## 功能模块
 
@@ -34,6 +34,16 @@
 - `src/main/webapp/post/list.jsp` — 帖子列表页面（修改，适配搜索展示）
 - `src/main/webapp/WEB-INF/home.jsp` — 搜索结果复用首页模板
 - `src/main/webapp/layouts/main.jsp` — 顶部导航搜索框（已有）
+
+### 3. 二级确认提示 (Secondary Confirmation Prompt)
+
+**功能描述**：
+- 管理员在帖子详情页执行置顶/加精操作时，会先弹出确认对话框
+- 确认对话框根据当前帖子状态显示具体的操作描述
+- 避免管理员误操作，提高操作安全性
+
+**相关文件**：
+- `src/main/webapp/post/detail_content.jsp` — 帖子详情页（修改，添加确认提示）
 
 ## API 端点说明
 
@@ -105,6 +115,62 @@ LIMIT ? OFFSET ?
 2. 加精帖子次之
 3. 按发布时间倒序
 
+### 5. 二级确认提示实现
+
+JavaScript 确认逻辑：
+
+```javascript
+function adminAction(url, postId, actionText, actionText2, actionText3) {
+    // 根据URL判断操作类型
+    let actionType = '';
+    let confirmMessage = '';
+
+    if (url.includes('/admin/post/top')) {
+        actionType = '置顶';
+        // 置顶操作 - 根据当前状态显示不同的确认消息
+        if (typeof actionText !== 'undefined' && typeof actionText2 !== 'undefined' && typeof actionText3 !== 'undefined') {
+            if (typeof post !== 'undefined' && post.isTop !== undefined) {
+                if (post.isTop === 0) {
+                    confirmMessage = '确定要' + actionText + '此帖子吗？\n\n注意：置顶操作将使帖子在板块列表中置顶显示。';
+                } else if (post.isTop === 1) {
+                    confirmMessage = '确定要' + actionText2 + '此帖子吗？\n\n注意：全局置顶将使帖子在首页置顶显示。';
+                } else if (post.isTop === 2) {
+                    confirmMessage = '确定要' + actionText3 + '此帖子吗？\n\n注意：取消置顶后帖子将恢复正常显示顺序。';
+                }
+            }
+        }
+    } else if (url.includes('/admin/post/elite')) {
+        actionType = '加精';
+        // 加精操作 - 根据当前状态显示不同的确认消息
+        if (typeof actionText !== 'undefined' && typeof actionText2 !== 'undefined') {
+            if (typeof post !== 'undefined' && post.isElite !== undefined) {
+                if (post.isElite === 0) {
+                    confirmMessage = '确定要' + actionText + '此帖子吗？\n\n注意：加精操作将标记此帖子为优质内容。';
+                } else if (post.isElite === 1) {
+                    confirmMessage = '确定要' + actionText2 + '此帖子吗？\n\n注意：取消加精后帖子将不再显示精华标记。';
+                }
+            }
+        }
+    }
+
+    if (confirm(confirmMessage)) {
+        fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: 'id=' + postId
+        }).then(function(r) {
+            if (r.ok) {
+                location.reload();
+            } else {
+                alert('操作失败，服务器返回: ' + r.status);
+            }
+        }).catch(function(error) {
+            alert('操作失败，请重试: ' + error.message);
+        });
+    }
+}
+```
+
 ## 前端集成说明
 
 ### 1. 帖子列表中的置顶/加精标识
@@ -145,7 +211,31 @@ LIMIT ? OFFSET ?
 </form>
 ```
 
-### 3. 搜索集成
+### 3. 二级确认提示实现
+
+在帖子详情页的置顶/加精按钮中添加确认提示：
+
+```jsp
+<button onclick="adminAction('${pageContext.request.contextPath}/admin/post/top', ${post.id}, '板块置顶', '全局置顶', '取消置顶')"
+        class="inline-flex items-center gap-1 px-3 py-1.5 text-sm text-orange-600 bg-orange-50 border border-orange-200 rounded hover:bg-orange-100 transition cursor-pointer active:scale-95">
+    <i class="fa fa-arrow-up"></i>
+    <c:choose>
+        <c:when test="${post.isTop == 0}">设为板块置顶</c:when>
+        <c:when test="${post.isTop == 1}">设为全局置顶</c:when>
+        <c:otherwise>取消置顶</c:otherwise>
+    </c:choose>
+</button>
+<button onclick="adminAction('${pageContext.request.contextPath}/admin/post/elite', ${post.id}, '加精', '取消加精')"
+        class="inline-flex items-center gap-1 px-3 py-1.5 text-sm text-pink-600 bg-pink-50 border border-pink-200 rounded hover:bg-pink-100 transition cursor-pointer active:scale-95">
+    <i class="fa fa-diamond"></i>
+    <c:choose>
+        <c:when test="${post.isElite == 0}">加精</c:when>
+        <c:otherwise>取消加精</c:otherwise>
+    </c:choose>
+</button>
+```
+
+### 4. 搜索集成
 
 搜索框位于顶部导航栏，提交到 `/post/search`：
 
@@ -231,6 +321,21 @@ request.setAttribute("postList", results);
 // 转发到 WEB-INF/home.jsp 渲染
 ```
 
+### 4. 管理员操作确认流程
+
+**管理员操作**：
+1. 进入帖子详情页
+2. 点击置顶/加精按钮
+3. 弹出确认对话框，显示具体操作描述
+4. 确认后执行操作，页面刷新显示新状态
+
+**确认消息示例**：
+- "确定要板块置顶此帖子吗？"
+- "确定要全局置顶此帖子吗？"
+- "确定要取消置顶此帖子吗？"
+- "确定要加精此帖子吗？"
+- "确定要取消加精此帖子吗？"
+
 ## 依赖关系
 
 ### 对其他成员的影响
@@ -274,7 +379,14 @@ request.setAttribute("postList", results);
 - 测试关键词为空时的处理（自动跳转首页）
 - 测试特殊字符搜索（如标点符号、空格）
 
-### 4. 权限测试
+### 4. 二级确认提示功能测试
+- 测试不同置顶状态下的确认消息显示
+- 测试不同加精状态下的确认消息显示
+- 测试确认对话框的取消操作
+- 测试确认后操作是否正确执行
+- 测试页面刷新后状态是否正确更新
+
+### 5. 权限测试
 - 验证普通用户无法访问 `/admin/post/manage`（403 禁止）
 - 验证未登录用户无法访问管理页面（自动跳转登录页）
 
@@ -286,3 +398,4 @@ request.setAttribute("postList", results);
 4. **分页安全**：页码参数使用异常捕获（NumberFormatException），无效值自动回退到第 1 页
 5. **编码**：所有页面使用 UTF-8 编码
 6. **SQL索引建议**：`posts` 表的 `title` 和 `content` 字段建议添加全文索引以优化搜索性能
+7. **确认提示**：二级确认提示使用 JavaScript 实现客户端确认，提高操作安全性

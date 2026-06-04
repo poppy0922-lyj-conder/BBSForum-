@@ -140,6 +140,7 @@ public class AdminPostServlet extends HttpServlet {
             LOG.log(Level.SEVERE, "切换置顶状态失败, postId=" + postId, e);
         }
 
+        LOG.info("置顶操作完成，重定向到管理页: postId=" + postId);
         response.sendRedirect(request.getContextPath() + "/admin/post/manage");
     }
 
@@ -189,6 +190,7 @@ public class AdminPostServlet extends HttpServlet {
             LOG.log(Level.SEVERE, "切换加精状态失败, postId=" + postId, e);
         }
 
+        LOG.info("加精操作完成，重定向到管理页: postId=" + postId);
         response.sendRedirect(request.getContextPath() + "/admin/post/manage");
     }
 
