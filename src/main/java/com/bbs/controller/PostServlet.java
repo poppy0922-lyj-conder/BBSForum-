@@ -29,11 +29,12 @@ import java.util.logging.Logger;
  * 帖子控制器
  * 负责：查看帖子详情、发布帖子、回复帖子（支持本地上传封面图）
  */
-@WebServlet(name = "post", urlPatterns = {"/post/create", "/post/detail", "/post/reply", "/post/edit", "/post/delete", "/post/uploadImage", "/post/aiSummary"})
+@WebServlet(name = "post", urlPatterns = {"/post/create", "/post/detail", "/post/reply", "/post/edit", "/post/delete", "/post/uploadImage", "/post/aiSummary", "/post/search"})
 @MultipartConfig(maxFileSize = 5 * 1024 * 1024, location = "")
 public class PostServlet extends HttpServlet {
 
     private static final Logger LOG = Logger.getLogger(PostServlet.class.getName());
+    private static final int PAGE_SIZE = 20;
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -48,6 +49,8 @@ public class PostServlet extends HttpServlet {
             handleEditForm(request, response);
         } else if ("/post/delete".equals(path)) {
             handleDelete(request, response);
+        } else if ("/post/search".equals(path)) {
+            handleSearch(request, response);
         }
     }
 
@@ -504,6 +507,97 @@ public class PostServlet extends HttpServlet {
         }
 
         response.sendRedirect(request.getContextPath() + "/");
+    }
+
+    /**
+     * 帖子搜索（GET /post/search?keyword=xxx）
+     * LIKE 搜索标题和内容，分页展示，复用首页帖子列表模板
+     */
+    private void handleSearch(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        String keyword = request.getParameter("keyword");
+        if (keyword == null || keyword.trim().isEmpty()) {
+            response.sendRedirect(request.getContextPath() + "/");
+            return;
+        }
+        keyword = keyword.trim();
+
+        // 获取当前页码
+        int page = 1;
+        try {
+            String pageStr = request.getParameter("page");
+            if (pageStr != null && !pageStr.isEmpty()) {
+                page = Integer.parseInt(pageStr);
+                if (page < 1) page = 1;
+            }
+        } catch (NumberFormatException e) {
+            page = 1;
+        }
+
+        int totalPosts = countSearchPosts(keyword);
+        int totalPages = (int) Math.ceil((double) totalPosts / PAGE_SIZE);
+        if (page > totalPages && totalPages > 0) page = totalPages;
+
+        List<Map<String, Object>> postList = searchPosts(keyword, page);
+
+        request.setAttribute("postList", postList);
+        request.setAttribute("currentPage", page);
+        request.setAttribute("totalPages", totalPages);
+        request.setAttribute("totalPosts", totalPosts);
+        request.setAttribute("pageSize", PAGE_SIZE);
+        request.setAttribute("searchKeyword", keyword);
+
+        request.getRequestDispatcher("/WEB-INF/home.jsp").forward(request, response);
+    }
+
+    /** 统计搜索匹配的帖子总数 */
+    private int countSearchPosts(String keyword) {
+        String sql = "SELECT COUNT(*) FROM posts WHERE title LIKE ? OR content LIKE ?";
+        String like = "%" + keyword + "%";
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, like);
+            ps.setString(2, like);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            }
+        } catch (SQLException e) {
+            LOG.log(Level.SEVERE, "统计搜索结果失败, keyword=" + keyword, e);
+        }
+        return 0;
+    }
+
+    /** 执行搜索，返回分页结果 */
+    private List<Map<String, Object>> searchPosts(String keyword, int page) {
+        List<Map<String, Object>> list = new ArrayList<>();
+        int offset = (page - 1) * PAGE_SIZE;
+        String like = "%" + keyword + "%";
+        String sql = "SELECT p.id, p.title, p.image_url, p.content AS summary, p.ai_summary, " +
+                     "p.is_top, p.is_elite, p.view_count, p.created_at, " +
+                     "u.username AS author_name, c.name AS category_name " +
+                     "FROM posts p " +
+                     "JOIN users u ON p.user_id = u.id " +
+                     "JOIN categories c ON p.category_id = c.id " +
+                     "WHERE p.title LIKE ? OR p.content LIKE ? " +
+                     "ORDER BY p.is_top DESC, p.is_elite DESC, p.created_at DESC " +
+                     "LIMIT ? OFFSET ?";
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, like);
+            ps.setString(2, like);
+            ps.setInt(3, PAGE_SIZE);
+            ps.setInt(4, offset);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(PostMapper.mapPostRow(rs));
+                }
+            }
+        } catch (SQLException e) {
+            LOG.log(Level.SEVERE, "搜索帖子失败, keyword=" + keyword, e);
+        }
+        return list;
     }
 
     /** 生成AI总结（需登录），返回JSON */
