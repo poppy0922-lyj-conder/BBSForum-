@@ -9,6 +9,10 @@
             <c:when test="${not empty currentCategory}">
                 <i class="fa fa-folder-o mr-1"></i> ${currentCategory.name}
             </c:when>
+            <c:when test="${not empty searchKeyword}">
+                <i class="fa fa-search mr-1"></i> 搜索："${searchKeyword}"
+                <span class="text-sm text-gray-400 font-normal ml-2">找到 ${totalPosts} 条结果</span>
+            </c:when>
             <c:otherwise>
                 <i class="fa fa-newspaper-o mr-1"></i> 全部帖子
             </c:otherwise>
@@ -19,8 +23,16 @@
 <c:choose>
     <c:when test="${empty postList}">
         <div class="text-center py-20 text-gray-400">
-            <i class="fa fa-inbox text-5xl block mb-4"></i>
-            <p class="text-sm">还没有帖子，成为第一个分享知识的人吧</p>
+            <c:choose>
+                <c:when test="${not empty searchKeyword}">
+                    <i class="fa fa-search text-5xl block mb-4"></i>
+                    <p class="text-sm">没有找到与 &quot;<c:out value='${searchKeyword}'/>&quot; 相关的帖子</p>
+                </c:when>
+                <c:otherwise>
+                    <i class="fa fa-inbox text-5xl block mb-4"></i>
+                    <p class="text-sm">还没有帖子，成为第一个分享知识的人吧</p>
+                </c:otherwise>
+            </c:choose>
         </div>
     </c:when>
     <c:otherwise>
@@ -81,6 +93,9 @@
         <c:if test="${totalPages > 1}">
             <div class="flex items-center justify-center gap-1 mt-8 pb-5">
                 <c:choose>
+                    <c:when test="${not empty searchKeyword}">
+                        <c:set var="pageUrl" value="${pageContext.request.contextPath}/post/search?keyword=${searchKeyword}&page="/>
+                    </c:when>
                     <c:when test="${not empty currentCategory}">
                         <c:set var="pageUrl" value="${pageContext.request.contextPath}/category?id=${currentCategory.id}&page="/>
                     </c:when>
