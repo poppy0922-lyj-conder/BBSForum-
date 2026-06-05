@@ -10,7 +10,7 @@ public class DBUtil {
 
     private static final String DB_URL = "jdbc:mysql://localhost:3306/bbs_forum?useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=utf8";
     private static final String DB_USER = "root";
-    private static final String DB_PASS = "@Yq13576576896";
+    private static final String DB_PASS = "0626Lwy@";
 
     static {
         try {

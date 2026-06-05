@@ -1,6 +1,7 @@
 package com.bbs.controller;
 
 import com.bbs.util.DBUtil;
+import com.bbs.util.PostMapper;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -29,7 +30,7 @@ public class AdminCategoryServlet extends HttpServlet {
             // 显示板块列表
             List<Map<String, Object>> categories = loadAllCategories();
             request.setAttribute("categoryList", categories);
-            request.getRequestDispatcher("/WEB-INF/admin/categories_content.jsp").forward(request, response);
+            request.getRequestDispatcher("/admin/categories.jsp").forward(request, response);
         } else if (action.equals("/admin/categories/edit")) {
             // 显示编辑表单
             int id = Integer.parseInt(request.getParameter("id"));
@@ -50,6 +51,7 @@ public class AdminCategoryServlet extends HttpServlet {
             String name = request.getParameter("name");
             String description = request.getParameter("description");
             addCategory(name, description);
+            refreshCategoryCache();
             response.sendRedirect(request.getContextPath() + "/admin/categories");
         } else if (action.equals("/admin/categories/edit")) {
             // 更新板块
@@ -57,11 +59,13 @@ public class AdminCategoryServlet extends HttpServlet {
             String name = request.getParameter("name");
             String description = request.getParameter("description");
             updateCategory(id, name, description);
+            refreshCategoryCache();
             response.sendRedirect(request.getContextPath() + "/admin/categories");
         } else if (action.equals("/admin/categories/delete")) {
             // 删除板块
             int id = Integer.parseInt(request.getParameter("id"));
             deleteCategory(id);
+            refreshCategoryCache();
             response.sendRedirect(request.getContextPath() + "/admin/categories");
         }
     }
@@ -69,7 +73,7 @@ public class AdminCategoryServlet extends HttpServlet {
     /** 加载所有板块列表 */
     private List<Map<String, Object>> loadAllCategories() {
         List<Map<String, Object>> list = new ArrayList<>();
-        String sql = "SELECT id, name, description, sort_order FROM categories ORDER BY sort_order";
+        String sql = "SELECT id, name, description, sort_order, created_at FROM categories ORDER BY sort_order";
         try (Connection conn = DBUtil.getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
@@ -79,6 +83,7 @@ public class AdminCategoryServlet extends HttpServlet {
                 category.put("name", rs.getString("name"));
                 category.put("description", rs.getString("description"));
                 category.put("sortOrder", rs.getInt("sort_order"));
+                category.put("createdAt", rs.getString("created_at"));
                 list.add(category);
             }
         } catch (SQLException e) {
@@ -145,5 +150,21 @@ public class AdminCategoryServlet extends HttpServlet {
         } catch (SQLException e) {
             e.printStackTrace();
         }
+    }
+
+    /** 刷新 ServletContext 中的板块缓存（供侧边栏使用） */
+    private void refreshCategoryCache() {
+        List<Map<String, Object>> list = new ArrayList<>();
+        String sql = "SELECT id, name, description FROM categories ORDER BY sort_order";
+        try (Connection conn = DBUtil.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            while (rs.next()) {
+                list.add(PostMapper.mapCategoryRow(rs));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        getServletContext().setAttribute("categoryList", list);
     }
 }
