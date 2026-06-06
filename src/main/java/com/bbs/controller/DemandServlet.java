@@ -138,7 +138,7 @@ public class DemandServlet extends HttpServlet {
                         "INSERT INTO score_logs (user_id, score, reason) VALUES (?, ?, ?)")) {
                     ps3.setInt(1, userId);
                     ps3.setInt(2, -score);
-                    ps3.setString(3, "发布悬赏: " + title);
+                    ps3.setString(3, "发布悬赏");
                     ps3.executeUpdate();
                 }
             }
