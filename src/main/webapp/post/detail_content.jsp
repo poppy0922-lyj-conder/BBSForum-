@@ -17,11 +17,18 @@
 
 <!-- 帖子主体 -->
 <article class="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden mb-6">
-    <c:if test="${not empty post.imageUrl}">
-        <div class="w-full bg-gray-100">
-            <img src="${post.imageUrl}" alt="${post.title}" class="w-full max-h-80 object-cover" onerror="this.parentElement.style.display='none'">
-        </div>
-    </c:if>
+    <c:choose>
+        <c:when test="${not empty post.imageUrl}">
+            <div class="w-full bg-gray-100">
+                <img src="${post.imageUrl}" alt="${post.title}" class="w-full max-h-80 object-cover" onerror="this.parentElement.style.display='none'">
+            </div>
+        </c:when>
+        <c:otherwise>
+            <div class="w-full bg-gray-100">
+                <img src="${pageContext.request.contextPath}/cover/${post.id}?title=${fn:substring(post.title, 0, 1)}" alt="${post.title}" class="w-full max-h-80 object-cover">
+            </div>
+        </c:otherwise>
+    </c:choose>
     <div class="p-6">
         <div class="mb-3">
             <c:if test="${post.isTop == 2}"><span class="inline-block px-2 py-0.5 text-xs font-medium text-red-600 bg-red-50 border border-red-200 rounded mr-2">全局置顶</span></c:if>

@@ -43,15 +43,10 @@
                     <div class="w-52 h-32 shrink-0 overflow-hidden bg-gray-100">
                         <c:choose>
                             <c:when test="${not empty post.imageUrl}">
-                                <img src="${post.imageUrl}" alt="${post.title}" class="w-full h-full object-cover" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-                                <div class="w-full h-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-3xl" style="display:none">
-                                    <i class="fa fa-image"></i>
-                                </div>
+                                <img src="${post.imageUrl}" alt="${post.title}" class="w-full h-full object-cover" onerror="this.src='${pageContext.request.contextPath}/cover/${post.id}?title=${fn:substring(post.title, 0, 1)}'">
                             </c:when>
                             <c:otherwise>
-                                <div class="w-full h-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-3xl">
-                                    <i class="fa fa-image"></i>
-                                </div>
+                                <img src="${pageContext.request.contextPath}/cover/${post.id}?title=${fn:substring(post.title, 0, 1)}" alt="${post.title}" class="w-full h-full object-cover">
                             </c:otherwise>
                         </c:choose>
                     </div>
