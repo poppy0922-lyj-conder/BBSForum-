@@ -35,6 +35,51 @@
     </table>
 </div>
 
+<!-- 积分卡片 -->
+<div class="card" style="margin-top:16px;text-align:center;padding:24px;">
+    <div style="font-size:36px;color:#3b82f6;font-weight:bold;">
+        <i class="fa fa-diamond"></i> ${user.score}
+    </div>
+    <div style="color:#94a3b8;font-size:14px;">当前积分</div>
+</div>
+
+<!-- 最近积分记录 -->
+<div class="card" style="margin-top:16px;">
+    <h3 style="margin-bottom:12px;"><i class="fa fa-history"></i> 最近积分记录</h3>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>时间</th>
+                <th>积分</th>
+                <th>原因</th>
+            </tr>
+        </thead>
+        <tbody>
+            <c:choose>
+                <c:when test="${empty scoreLogs}">
+                    <tr><td colspan="3" style="text-align:center;color:#94a3b8;">暂无积分记录</td></tr>
+                </c:when>
+                <c:otherwise>
+                    <c:forEach var="log" items="${scoreLogs}">
+                        <tr>
+                            <td>${log.createdAt}</td>
+                            <td style="color:${log.score > 0 ? '#10b981' : '#ef4444'};font-weight:600;">
+                                ${log.score > 0 ? '+' : ''}${log.score}
+                            </td>
+                            <td>${log.reason}</td>
+                        </tr>
+                    </c:forEach>
+                </c:otherwise>
+            </c:choose>
+        </tbody>
+    </table>
+    <div style="margin-top:8px;text-align:right;">
+        <a href="${pageContext.request.contextPath}/score/record" class="btn btn-sm btn-outline">
+            <i class="fa fa-list"></i> 查看全部
+        </a>
+    </div>
+</div>
+
 <div style="margin-top:16px; display:flex; gap:8px; flex-wrap:wrap;">
     <a href="${pageContext.request.contextPath}/user/profile/edit" class="btn btn-primary">
         <i class="fa fa-edit"></i> 编辑资料

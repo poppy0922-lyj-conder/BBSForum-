@@ -108,6 +108,10 @@ public class InteractionServlet extends HttpServlet {
                     ps.executeUpdate();
                 }
                 updateCount(conn, "UPDATE posts SET like_count = like_count + 1 WHERE id=?", postId);
+
+                // 点赞 +3 积分（给帖子作者）
+                addScoreToPostAuthor(conn, postId, 3, "帖子被点赞");
+
                 int count = getCount(conn, "SELECT like_count FROM posts WHERE id=?", postId);
                 response.getWriter().write("{\"ok\":true,\"action\":\"like\",\"count\":" + count + "}");
             }
@@ -168,6 +172,43 @@ public class InteractionServlet extends HttpServlet {
             try (ResultSet rs = ps.executeQuery()) {
                 return rs.next() ? rs.getInt(1) : 0;
             }
+        }
+    }
+
+    /** 给帖子作者加分（点赞触发） */
+    private void addScoreToPostAuthor(Connection conn, int postId, int score, String reason) {
+        String authorSql = "SELECT user_id FROM posts WHERE id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(authorSql)) {
+            ps.setInt(1, postId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    int authorId = rs.getInt("user_id");
+                    addScore(authorId, score, reason);
+                }
+            }
+        } catch (SQLException e) {
+            LOG.log(Level.WARNING, "查询帖子作者失败: postId=" + postId, e);
+        }
+    }
+
+    /** 给用户增加积分并写入流水（失败不影响主流程） */
+    private void addScore(int userId, int score, String reason) {
+        String sql1 = "UPDATE users SET score = score + ? WHERE id = ?";
+        String sql2 = "INSERT INTO score_logs (user_id, score, reason) VALUES (?, ?, ?)";
+        try (Connection conn = DBUtil.getConnection()) {
+            try (PreparedStatement ps = conn.prepareStatement(sql1)) {
+                ps.setInt(1, score);
+                ps.setInt(2, userId);
+                ps.executeUpdate();
+            }
+            try (PreparedStatement ps = conn.prepareStatement(sql2)) {
+                ps.setInt(1, userId);
+                ps.setInt(2, score);
+                ps.setString(3, reason);
+                ps.executeUpdate();
+            }
+        } catch (SQLException e) {
+            LOG.log(Level.WARNING, "加分失败: userId=" + userId + ", score=" + score, e);
         }
     }
 }

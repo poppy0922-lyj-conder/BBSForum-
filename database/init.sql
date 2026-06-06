@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS users (
     job_location VARCHAR(100) DEFAULT '' COMMENT '工作地点',
     role        ENUM('user','admin') NOT NULL DEFAULT 'user' COMMENT '角色',
     score       INT NOT NULL DEFAULT 0 COMMENT '用户积分',
+    score       INT NOT NULL DEFAULT 0 COMMENT '积分',
     created_at  DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '注册时间'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户表';
 
@@ -126,3 +127,17 @@ CREATE TABLE IF NOT EXISTS score_logs (
     created_at  DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '时间',
     FOREIGN KEY (user_id) REFERENCES users(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='积分流水表';
+
+-- ============================================
+-- 7. 签到表 (组员B负责)
+-- ============================================
+CREATE TABLE IF NOT EXISTS daily_checkins (
+    id                INT AUTO_INCREMENT PRIMARY KEY,
+    user_id           INT NOT NULL COMMENT '用户ID',
+    checkin_date      DATE NOT NULL COMMENT '签到日期',
+    consecutive_days  INT NOT NULL DEFAULT 1 COMMENT '连续签到天数',
+    score_earned      INT NOT NULL DEFAULT 5 COMMENT '本次获得积分',
+    created_at        DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '签到时间',
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    UNIQUE KEY uk_user_date (user_id, checkin_date)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='每日签到表';

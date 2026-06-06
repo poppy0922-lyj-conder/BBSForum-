@@ -301,6 +301,10 @@ public class PostServlet extends HttpServlet {
                 if (rs.next()) {
                     int newId = rs.getInt(1);
                     LOG.info("新帖发布成功, postId=" + newId + ", 作者=" + user.get("username"));
+
+                    // 发帖 +10 积分
+                    addScore(userId, 10, "发布帖子");
+
                     response.sendRedirect(request.getContextPath() + "/post/detail?id=" + newId);
                     return;
                 }
@@ -350,6 +354,9 @@ public class PostServlet extends HttpServlet {
             ps.setInt(3, postId);
             ps.executeUpdate();
             LOG.info("新回复成功, postId=" + postId + ", 用户=" + user.get("username"));
+
+            // 回复 +2 积分
+            addScore(userId, 2, "回复帖子");
         } catch (SQLException e) {
             LOG.log(Level.SEVERE, "发表回复失败, postId=" + postId, e);
         }
@@ -751,5 +758,26 @@ public class PostServlet extends HttpServlet {
         Files.copy(filePart.getInputStream(), targetFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
 
         return request.getContextPath() + "/uploads/" + newFileName;
+    }
+
+    /** 给用户增加积分并写入流水（失败不影响主流程） */
+    private void addScore(int userId, int score, String reason) {
+        String sql1 = "UPDATE users SET score = score + ? WHERE id = ?";
+        String sql2 = "INSERT INTO score_logs (user_id, score, reason) VALUES (?, ?, ?)";
+        try (Connection conn = DBUtil.getConnection()) {
+            try (PreparedStatement ps = conn.prepareStatement(sql1)) {
+                ps.setInt(1, score);
+                ps.setInt(2, userId);
+                ps.executeUpdate();
+            }
+            try (PreparedStatement ps = conn.prepareStatement(sql2)) {
+                ps.setInt(1, userId);
+                ps.setInt(2, score);
+                ps.setString(3, reason);
+                ps.executeUpdate();
+            }
+        } catch (SQLException e) {
+            LOG.log(Level.WARNING, "加分失败: userId=" + userId + ", score=" + score, e);
+        }
     }
 }

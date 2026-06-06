@@ -479,3 +479,146 @@ GET    /BBSForum/score/rank                           积分排行
 
 > **文档更新日期**：2026-06-06
 > **说明**：本文档根据实际开发完成情况更新，所有功能均已实现并测试可用。
+
+---
+
+## 十一、积分系统设计方案
+
+### 11.1 积分规则总览
+
+| 操作 | 积分变动 | 说明 |
+|------|:--------:|------|
+| 发布帖子 | **+10** | 成功发帖后自动增加 |
+| 回复帖子 | **+2** | 回复成功后给回复者增加 |
+| 每日签到 | **+5** | 每天限一次，点击签到按钮领取 |
+| 帖子被点赞 | **+3** | 有人点赞帖子，给帖子作者增加 |
+| 每日首次登录 | **+2** | 登录成功后自动发放 |
+| 回复被采纳 | **+悬赏分** | 需求发布者采纳回复后转给回复者 |
+| 发布需求 | **-悬赏分** | 发布悬赏时从发布者账户扣除 |
+
+> 连续签到奖励递增：连续签到第1天+5，第2天+6，第3天+7...封顶+15
+
+### 11.2 角色分工
+
+#### 组长（S）：帖子维度积分
+
+**负责内容**：
+- **发帖 +10 分**：在 `PostServlet.handleCreatePost()` 创建帖子成功后，调用积分工具给作者加 10 分，并写入 `score_logs`
+- **回复 +2 分**：在 `PostServlet.handleReply()` 回复成功后，给回复者加 2 分，并写入 `score_logs`
+- **点赞 +3 分**：在 `InteractionServlet.doLike()` 点赞时，查询帖子作者 ID，给作者加 3 分，并写入 `score_logs`
+
+**涉及文件**：
+```
+src/main/java/com/bbs/controller/
+  PostServlet.java           # 发帖+加分、回复+加分
+  InteractionServlet.java    # 点赞+给作者加分
+```
+
+#### 组员A（A）：搜索结果展示积分
+
+**负责内容**：
+- 搜索结果列表展示帖子作者的积分值
+- 搜索接口返回数据中包含作者积分字段
+
+**涉及文件**：
+```
+src/main/webapp/post/list.jsp             # 搜索结果中展示作者积分
+src/main/java/com/bbs/controller/
+  PostServlet.java           # 搜索SQL关联users表查询score
+```
+
+#### 组员B（B）：用户签到 + 登录奖励
+
+**负责内容**：
+- **建表**：新建 `daily_checkins` 签到表
+- **每日签到 +5 分**：新增接口 `/user/checkin`，每天限签到一次，给用户加积分并写入 `score_logs`
+- **连续签到递增**：第1天+5，第2天+6，... 封顶+15，断签重置为第1天
+- **登录 +2 分**：在 `UserServlet` 登录成功后，判断是否当天已领，未领则发放 +2 并写入 `score_logs`
+- **前端签到按钮**：用户中心或个人资料页显示签到按钮，显示今日已签到/去签到状态
+
+**涉及文件**：
+```
+src/main/java/com/bbs/controller/
+  UserServlet.java           # 登录+2分、签到接口
+
+src/main/webapp/user/
+  profile.jsp                # 签到按钮 UI
+```
+
+**签到表设计**：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | INT | 主键自增 |
+| user_id | INT | 用户ID（外键） |
+| checkin_date | DATE | 签到日期 |
+| consecutive_days | INT | 连续签到天数 |
+| score_earned | INT | 本次签到获得积分 |
+| created_at | DATETIME | 签到时间 |
+
+#### 组员C（C）：采纳结算页面
+
+**负责内容**：
+- 需求详情页增加"去解决"按钮（登录用户可见）
+- 需求详情页回复列表增加"采纳"确认交互
+- 编辑文章页面显示作者当前积分
+
+**涉及文件**：
+```
+src/main/webapp/demand/
+  detail_content.jsp         # "去解决"按钮、采纳确认
+src/main/webapp/post/
+  edit_content.jsp           # 显示作者积分
+```
+
+#### 组员D（D）：需求积分流转
+
+**负责内容**（已部分实现）：
+- **发布需求扣分**：发布需求时从发布者 `users.score` 扣除对应积分，写入 `score_logs(-分)`
+- **采纳回复加分**：采纳时给回复者 `users.score` 增加对应积分，写入 `score_logs(+分)`
+- **积分排行榜**：`/score/rank` 按 `users.score` 降序排列
+- **积分流水记录**：`/score/record` 展示当前用户的 `score_logs` 明细
+
+**涉及文件**：
+```
+src/main/java/com/bbs/controller/
+  DemandServlet.java         # 发布扣分、采纳加分
+  ScoreServlet.java          # 排行榜、积分流水
+
+src/main/webapp/score/
+  rank_content.jsp           # 排行榜页面
+  record_content.jsp         # 积分流水页面
+```
+
+### 11.3 数据库新增
+
+**签到表（daily_checkins）—— 组员B负责**
+
+```sql
+CREATE TABLE IF NOT EXISTS daily_checkins (
+    id                INT AUTO_INCREMENT PRIMARY KEY,
+    user_id           INT NOT NULL COMMENT '用户ID',
+    checkin_date      DATE NOT NULL COMMENT '签到日期',
+    consecutive_days  INT NOT NULL DEFAULT 1 COMMENT '连续签到天数',
+    score_earned      INT NOT NULL DEFAULT 5 COMMENT '本次获得积分',
+    created_at        DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    UNIQUE KEY uk_user_date (user_id, checkin_date)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='每日签到表';
+```
+
+### 11.4 新增URL路由
+
+```
+GET    /BBSForum/user/checkin                          签到接口（组员B）
+```
+
+### 11.5 工作量更新
+
+```
+组长（帖子核心+架构+创新+积分流转）：    *************************** 28%
+组员C（板块+编辑+展示+采纳）：          *******************         19%
+组员B（用户系统+签到+登录奖励）：        *******************         19%
+组员D（需求+积分+排行榜）：              *******************         19%
+组员A（置顶+加精+搜索+积分展示）：       ******************          15%
+```
