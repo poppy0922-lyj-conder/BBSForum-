@@ -8,11 +8,6 @@
         <i class="fa fa-diamond mr-1 text-orange-500"></i> 需求悬赏
         <span class="text-sm text-gray-400 font-normal ml-2">共 ${totalPosts} 条需求</span>
     </h2>
-    <c:if test="${not empty sessionScope.user}">
-        <a href="${pageContext.request.contextPath}/demand/create" class="text-sm px-3 py-1.5 bg-orange-500 text-white rounded hover:bg-orange-600 no-underline">
-            <i class="fa fa-plus"></i> 发布悬赏
-        </a>
-    </c:if>
 </div>
 
 <c:choose>
@@ -20,18 +15,16 @@
         <div class="text-center py-20 text-gray-400">
             <i class="fa fa-diamond text-5xl block mb-4"></i>
             <p class="text-sm">还没有悬赏需求</p>
-            <c:if test="${not empty sessionScope.user}">
-                <a href="${pageContext.request.contextPath}/demand/create" class="inline-block mt-3 text-sm text-orange-500 hover:text-orange-600 no-underline">发布第一个悬赏</a>
-            </c:if>
         </div>
     </c:when>
     <c:otherwise>
         <div class="space-y-3">
             <c:forEach var="demand" items="${postList}">
+                <a href="${pageContext.request.contextPath}/demand/detail?id=${demand.id}" class="block no-underline">
                 <div class="bg-white rounded-lg shadow-sm border border-gray-100 p-5 hover:shadow-md transition">
                     <div class="flex items-start justify-between">
                         <div class="flex-1 min-w-0">
-                            <h3 class="text-base font-semibold mb-1">
+                            <h3 class="text-base font-semibold mb-1 text-gray-900">
                                 <c:choose>
                                     <c:when test="${demand.status == 'open'}">
                                         <span class="inline-block px-1.5 py-px text-xs font-medium text-green-600 bg-green-50 border border-green-200 rounded mr-1.5 align-middle">进行中</span>
@@ -57,6 +50,7 @@
                         </div>
                     </div>
                 </div>
+                </a>
             </c:forEach>
         </div>
 

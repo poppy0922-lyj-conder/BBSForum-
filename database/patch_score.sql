@@ -19,9 +19,6 @@ PREPARE stmt FROM @sql;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
--- 给现有用户初始化积分
-UPDATE users SET score = 100 WHERE score = 0 OR score IS NULL;
-
 -- 创建签到表（如不存在）
 CREATE TABLE IF NOT EXISTS daily_checkins (
     id                INT AUTO_INCREMENT PRIMARY KEY,
@@ -33,3 +30,14 @@ CREATE TABLE IF NOT EXISTS daily_checkins (
     FOREIGN KEY (user_id) REFERENCES users(id),
     UNIQUE KEY uk_user_date (user_id, checkin_date)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='每日签到表';
+
+-- 创建需求回复表（如不存在）
+CREATE TABLE IF NOT EXISTS demand_replies (
+    id          INT AUTO_INCREMENT PRIMARY KEY,
+    content     TEXT NOT NULL COMMENT '回复内容',
+    user_id     INT NOT NULL COMMENT '回复者ID',
+    demand_id   INT NOT NULL COMMENT '所属需求ID',
+    created_at  DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '回复时间',
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (demand_id) REFERENCES demands(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='需求回复表';

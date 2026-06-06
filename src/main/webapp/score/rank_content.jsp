@@ -9,12 +9,6 @@
         </h2>
         <p class="text-xs text-gray-400 mt-1">按总积分降序排列，仅展示前100名</p>
     </div>
-    <c:if test="${not empty sessionScope.user}">
-        <a href="${pageContext.request.contextPath}/score/record"
-           class="px-4 py-2 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition no-underline shadow-sm">
-            <i class="fa fa-history mr-1"></i> 我的积分记录
-        </a>
-    </c:if>
 </div>
 
 <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">

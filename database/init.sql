@@ -22,7 +22,6 @@ CREATE TABLE IF NOT EXISTS users (
     job_type    VARCHAR(50)  DEFAULT '' COMMENT '工作性质',
     job_location VARCHAR(100) DEFAULT '' COMMENT '工作地点',
     role        ENUM('user','admin') NOT NULL DEFAULT 'user' COMMENT '角色',
-    score       INT NOT NULL DEFAULT 0 COMMENT '用户积分',
     score       INT NOT NULL DEFAULT 0 COMMENT '积分',
     created_at  DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '注册时间'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户表';
@@ -115,6 +114,17 @@ CREATE TABLE IF NOT EXISTS demands (
     FOREIGN KEY (user_id) REFERENCES users(id),
     FOREIGN KEY (category_id) REFERENCES categories(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='需求表';
+
+-- 需求回复表
+CREATE TABLE IF NOT EXISTS demand_replies (
+    id          INT AUTO_INCREMENT PRIMARY KEY,
+    content     TEXT NOT NULL COMMENT '回复内容',
+    user_id     INT NOT NULL COMMENT '回复者ID',
+    demand_id   INT NOT NULL COMMENT '所属需求ID',
+    created_at  DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '回复时间',
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (demand_id) REFERENCES demands(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='需求回复表';
 
 -- ============================================
 -- 6. 积分流水表 (组员D负责)
