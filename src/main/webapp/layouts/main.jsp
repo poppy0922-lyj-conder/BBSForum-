@@ -242,5 +242,96 @@
 </footer>
 
 <script src="${pageContext.request.contextPath}/js/common.js"></script>
+
+<!-- 统一提示弹窗 -->
+<div id="modalOverlay" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/40" style="display:none;">
+    <div id="modalBox" class="bg-white rounded-xl shadow-2xl max-w-sm w-full mx-4 overflow-hidden animate-modal">
+        <div id="modalIconArea" class="p-5 text-center pb-2">
+            <div id="modalIconWrap" class="w-14 h-14 mx-auto mb-3 rounded-full flex items-center justify-center">
+                <i id="modalIcon" class="fa fa-info-circle text-2xl"></i>
+            </div>
+            <h4 id="modalTitle" class="text-lg font-semibold text-gray-900 mb-2">提示</h4>
+            <p id="modalMsg" class="text-sm text-gray-500 leading-relaxed">消息内容</p>
+        </div>
+        <div id="modalBtnArea" class="flex border-t border-gray-100">
+            <button id="modalBtnCancel" class="hidden flex-1 py-3 text-sm text-gray-500 hover:bg-gray-50 transition cursor-pointer border-none bg-transparent">取消</button>
+            <button id="modalBtnConfirm" onclick="modalResolve(true)" class="flex-1 py-3 text-sm font-medium hover:bg-blue-50 transition cursor-pointer border-none bg-transparent">
+                <i class="fa fa-check"></i> 确定
+            </button>
+        </div>
+    </div>
+</div>
+
+<style>
+.animate-modal { animation: modalFadeIn 0.15s ease-out; }
+@keyframes modalFadeIn { from { opacity:0; transform:scale(0.95); } to { opacity:1; transform:scale(1); } }
+</style>
+
+<script>
+var _modalResolve = null;
+
+function modalResolve(val) {
+    if (_modalResolve) _modalResolve(val);
+    _modalResolve = null;
+    document.getElementById('modalOverlay').style.display = 'none';
+}
+
+// 重写 alert
+window.alert = function(msg) {
+    return new Promise(function(resolve) {
+        _modalResolve = resolve;
+        var overlay = document.getElementById('modalOverlay');
+        document.getElementById('modalIconWrap').className = 'w-14 h-14 mx-auto mb-3 rounded-full flex items-center justify-center bg-blue-50 border border-blue-200';
+        document.getElementById('modalIcon').className = 'fa fa-info-circle text-2xl text-blue-500';
+        document.getElementById('modalTitle').textContent = '提示';
+        document.getElementById('modalMsg').textContent = msg;
+        document.getElementById('modalBtnCancel').style.display = 'none';
+        document.getElementById('modalBtnConfirm').innerHTML = '<i class="fa fa-check"></i> 确定';
+        document.getElementById('modalBtnConfirm').className = 'flex-1 py-3 text-sm font-medium text-blue-600 hover:bg-blue-50 transition cursor-pointer border-none bg-transparent';
+        overlay.style.display = 'flex';
+    });
+};
+
+// 确认弹窗（返回 Promise<boolean>）
+function showConfirm(msg) {
+    return new Promise(function(resolve) {
+        _modalResolve = resolve;
+        var overlay = document.getElementById('modalOverlay');
+        document.getElementById('modalIconWrap').className = 'w-14 h-14 mx-auto mb-3 rounded-full flex items-center justify-center bg-orange-50 border border-orange-200';
+        document.getElementById('modalIcon').className = 'fa fa-question-circle text-2xl text-orange-500';
+        document.getElementById('modalTitle').textContent = '确认操作';
+        document.getElementById('modalMsg').textContent = msg;
+        document.getElementById('modalBtnCancel').style.display = 'block';
+        document.getElementById('modalBtnCancel').className = 'flex-1 py-3 text-sm text-gray-500 hover:bg-gray-50 transition cursor-pointer border-none bg-transparent';
+        document.getElementById('modalBtnCancel').onclick = function() { modalResolve(false); };
+        document.getElementById('modalBtnConfirm').innerHTML = '<i class="fa fa-check"></i> 确定';
+        document.getElementById('modalBtnConfirm').className = 'flex-1 py-3 text-sm font-medium text-orange-600 hover:bg-orange-50 transition cursor-pointer border-none bg-transparent border-l border-gray-100';
+        overlay.style.display = 'flex';
+    });
+}
+
+// 错误弹窗
+function showError(msg) {
+    return new Promise(function(resolve) {
+        _modalResolve = resolve;
+        var overlay = document.getElementById('modalOverlay');
+        document.getElementById('modalIconWrap').className = 'w-14 h-14 mx-auto mb-3 rounded-full flex items-center justify-center bg-red-50 border border-red-200';
+        document.getElementById('modalIcon').className = 'fa fa-exclamation-circle text-2xl text-red-500';
+        document.getElementById('modalTitle').textContent = '操作失败';
+        document.getElementById('modalMsg').textContent = msg;
+        document.getElementById('modalBtnCancel').style.display = 'none';
+        document.getElementById('modalBtnConfirm').innerHTML = '<i class="fa fa-check"></i> 知道了';
+        document.getElementById('modalBtnConfirm').className = 'flex-1 py-3 text-sm font-medium text-blue-600 hover:bg-blue-50 transition cursor-pointer border-none bg-transparent';
+        overlay.style.display = 'flex';
+    });
+}
+
+// 点击遮罩关闭提示
+document.getElementById('modalOverlay').addEventListener('click', function(e) {
+    if (e.target === this && document.getElementById('modalBtnCancel').style.display !== 'none') {
+        modalResolve(false);
+    }
+});
+</script>
 </body>
 </html>

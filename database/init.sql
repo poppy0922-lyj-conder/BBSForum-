@@ -106,13 +106,11 @@ CREATE TABLE IF NOT EXISTS demands (
                                        title         VARCHAR(100) NOT NULL COMMENT '需求标题',
     content       TEXT NOT NULL COMMENT '需求描述',
     user_id       INT NOT NULL COMMENT '发布者ID',
-    category_id   INT NOT NULL COMMENT '所属板块ID',
     score         INT NOT NULL DEFAULT 0 COMMENT '悬赏积分',
     status        ENUM('open','closed') NOT NULL DEFAULT 'open' COMMENT '状态',
     best_reply_id INT DEFAULT NULL COMMENT '最佳回复ID',
     created_at    DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '发布时间',
-    FOREIGN KEY (user_id) REFERENCES users(id),
-    FOREIGN KEY (category_id) REFERENCES categories(id)
+    FOREIGN KEY (user_id) REFERENCES users(id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='需求表';
 
 -- 需求回复表
@@ -137,3 +135,33 @@ CREATE TABLE IF NOT EXISTS score_logs (
     created_at  DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '时间',
     FOREIGN KEY (user_id) REFERENCES users(id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='积分流水表';
+
+-- ============================================
+-- 7. 签到表 (组员D负责)
+-- ============================================
+CREATE TABLE IF NOT EXISTS daily_checkins (
+    id                INT AUTO_INCREMENT PRIMARY KEY,
+    user_id           INT NOT NULL COMMENT '用户ID',
+    checkin_date      DATE NOT NULL COMMENT '签到日期',
+    consecutive_days  INT NOT NULL DEFAULT 1 COMMENT '连续签到天数',
+    score_earned      INT NOT NULL DEFAULT 5 COMMENT '本次获得积分',
+    created_at        DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '签到时间',
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    UNIQUE KEY uk_user_date (user_id, checkin_date)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='每日签到表';
+
+-- ============================================
+-- 已有数据库迁移补丁（已存在则跳过）
+-- 新部署可忽略以下内容
+-- ============================================
+SET @dbname = DATABASE();
+SET @col_exists = (SELECT COUNT(*) FROM information_schema.COLUMNS
+                   WHERE TABLE_SCHEMA = @dbname
+                   AND TABLE_NAME = 'users'
+                   AND COLUMN_NAME = 'score');
+SET @sql = IF(@col_exists = 0,
+    'ALTER TABLE users ADD COLUMN score INT NOT NULL DEFAULT 0 COMMENT ''积分'' AFTER role',
+    'SELECT 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;

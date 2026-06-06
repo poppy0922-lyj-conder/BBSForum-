@@ -103,7 +103,6 @@ public class DemandServlet extends HttpServlet {
         String title = request.getParameter("title");
         String content = request.getParameter("content");
         String scoreStr = request.getParameter("score");
-        String categoryIdStr = request.getParameter("categoryId");
 
         Object userObj = request.getSession().getAttribute("user");
         if (userObj == null) {
@@ -123,11 +122,6 @@ public class DemandServlet extends HttpServlet {
             return;
         }
         if (score > 10000) score = 10000;
-
-        int categoryId = 0;
-        if (categoryIdStr != null && !categoryIdStr.isEmpty()) {
-            try { categoryId = Integer.parseInt(categoryIdStr); } catch (NumberFormatException e) { categoryId = 0; }
-        }
 
         // 检查用户积分是否足够
         if (score > 0) {
@@ -157,13 +151,12 @@ public class DemandServlet extends HttpServlet {
             conn.setAutoCommit(false);
 
             // 1. 插入需求
-            String insertSql = "INSERT INTO demands (title, content, user_id, category_id, score, status) VALUES (?, ?, ?, ?, ?, 'open')";
+            String insertSql = "INSERT INTO demands (title, content, user_id, score, status) VALUES (?, ?, ?, ?, 'open')";
             try (PreparedStatement ps = conn.prepareStatement(insertSql)) {
                 ps.setString(1, title);
                 ps.setString(2, content);
                 ps.setInt(3, userId);
-                ps.setInt(4, categoryId);
-                ps.setInt(5, score);
+                ps.setInt(4, score);
                 ps.executeUpdate();
             }
 
@@ -596,7 +589,7 @@ public class DemandServlet extends HttpServlet {
     private List<Map<String, Object>> loadDemands(int page) {
         List<Map<String, Object>> list = new ArrayList<>();
         int offset = (page - 1) * PAGE_SIZE;
-        String sql = "SELECT d.id, d.title, d.content, d.score, d.status, d.created_at, " +
+        String sql = "SELECT d.id, d.title, d.content, d.score, d.status, d.created_at, d.user_id, " +
                      "u.username AS author_name " +
                      "FROM demands d JOIN users u ON d.user_id = u.id " +
                      "ORDER BY d.created_at DESC LIMIT ? OFFSET ?";
@@ -614,6 +607,7 @@ public class DemandServlet extends HttpServlet {
                     m.put("status", rs.getString("status"));
                     m.put("createdAt", rs.getObject("created_at"));
                     m.put("authorName", rs.getString("author_name"));
+                    m.put("userId", rs.getInt("user_id"));
                     list.add(m);
                 }
             }

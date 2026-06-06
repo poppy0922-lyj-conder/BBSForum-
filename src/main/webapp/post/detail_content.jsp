@@ -90,7 +90,7 @@
                 <a href="${pageContext.request.contextPath}/post/edit?id=${post.id}" class="inline-flex items-center gap-1 px-3 py-1.5 text-sm text-blue-600 bg-blue-50 border border-blue-200 rounded hover:bg-blue-100 no-underline transition">
                     <i class="fa fa-edit"></i> 编辑
                 </a>
-                <a href="${pageContext.request.contextPath}/post/delete?id=${post.id}" onclick="return confirm('确定删除此帖子？')" class="inline-flex items-center gap-1 px-3 py-1.5 text-sm text-red-600 bg-red-50 border border-red-200 rounded hover:bg-red-100 no-underline transition">
+                <a href="${pageContext.request.contextPath}/post/delete?id=${post.id}" onclick="confirmDeletePost(event, '${pageContext.request.contextPath}/post/delete?id=${post.id}')" class="inline-flex items-center gap-1 px-3 py-1.5 text-sm text-red-600 bg-red-50 border border-red-200 rounded hover:bg-red-100 no-underline transition">
                     <i class="fa fa-trash"></i> 删除
                 </a>
             </c:if>
@@ -321,7 +321,7 @@ function toggleFavorite(postId, btn) {
     }).catch(function() { alert('网络错误，请重试'); });
 }
 
-function adminAction(url, postId, actionText, actionText2, actionText3) {
+async function adminAction(url, postId, actionText, actionText2, actionText3) {
     console.log('开始执行操作:', url, '帖子ID:', postId);
 
     // 根据URL判断操作类型
@@ -371,8 +371,12 @@ function adminAction(url, postId, actionText, actionText2, actionText3) {
         }
     }
 
-    if (confirm(confirmMessage)) {
-        fetch(url, {
+    var confirmed = await showConfirm(confirmMessage);
+    if (!confirmed) {
+        console.log('用户取消了操作');
+        return;
+    }
+    fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: 'id=' + postId
@@ -387,8 +391,13 @@ function adminAction(url, postId, actionText, actionText2, actionText3) {
             console.error('请求失败:', error);
             alert('操作失败，请重试: ' + error.message);
         });
-    } else {
-        console.log('用户取消了操作');
     }
+}
+
+function confirmDeletePost(event, url) {
+    event.preventDefault();
+    showConfirm('确定删除此帖子？').then(function(ok) {
+        if (ok) location.href = url;
+    });
 }
 </script>

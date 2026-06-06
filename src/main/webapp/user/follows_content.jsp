@@ -37,8 +37,9 @@
 </c:choose>
 
 <script>
-function unfollow(userId, btn) {
-    if (!confirm('确定取消关注？')) return;
+async function unfollow(userId, btn) {
+    var ok = await showConfirm('确定取消关注？');
+    if (!ok) return;
     fetch('${pageContext.request.contextPath}/interact/follow', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },

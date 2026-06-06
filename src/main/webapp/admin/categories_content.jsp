@@ -66,10 +66,9 @@
                                    title="编辑板块">
                                     <i class="fa fa-edit"></i>
                                 </a>
-                                <form method="post" action="${pageContext.request.contextPath}/admin/categories/delete" class="inline"
-                                      onsubmit="return confirm('确定要删除板块「${cat.name}」吗？删除后不可恢复。');">
+                                <form method="post" action="${pageContext.request.contextPath}/admin/categories/delete" class="inline">
                                     <input type="hidden" name="id" value="${cat.id}">
-                                    <button type="submit"
+                                    <button type="button" onclick="confirmDeleteCategory(this, '${cat.name}')"
                                             class="p-1.5 text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition cursor-pointer"
                                             title="删除板块">
                                         <i class="fa fa-trash"></i>
@@ -91,3 +90,14 @@
         </table>
     </div>
 </div>
+
+<script>
+function confirmDeleteCategory(btn, name) {
+    showConfirm('确定要删除板块「' + name + '」吗？删除后不可恢复。').then(function(ok) {
+        if (ok) {
+            var form = btn.closest('form');
+            if (form) form.submit();
+        }
+    });
+}
+</script>

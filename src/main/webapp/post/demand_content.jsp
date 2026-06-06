@@ -21,10 +21,10 @@
         <div class="space-y-3">
             <c:forEach var="demand" items="${postList}">
                 <a href="${pageContext.request.contextPath}/demand/detail?id=${demand.id}" class="block no-underline">
-                <div class="bg-white rounded-lg shadow-sm border border-gray-100 p-5 hover:shadow-md transition">
+                <div class="bg-white rounded-lg shadow-sm border border-gray-100 p-5 hover:shadow-md transition <c:if test='${demand.status != \"open\"}'>opacity-60</c:if>">
                     <div class="flex items-start justify-between">
                         <div class="flex-1 min-w-0">
-                            <h3 class="text-base font-semibold mb-1 text-gray-900">
+                            <h3 class="text-base font-semibold mb-1 <c:choose><c:when test='${demand.status == \"open\"}'>text-gray-900</c:when><c:otherwise>text-gray-400</c:otherwise></c:choose>">
                                 <c:choose>
                                     <c:when test="${demand.status == 'open'}">
                                         <span class="inline-block px-1.5 py-px text-xs font-medium text-green-600 bg-green-50 border border-green-200 rounded mr-1.5 align-middle">进行中</span>
@@ -34,9 +34,12 @@
                                     </c:otherwise>
                                 </c:choose>
                                 ${demand.title}
+                                <c:if test="${sessionScope.user.id == demand.userId}">
+                                    <span class="inline-block px-1.5 py-px text-xs font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-full ml-1">我的</span>
+                                </c:if>
                             </h3>
-                            <p class="text-sm text-gray-500 mt-1 line-clamp-2">${demand.content}</p>
-                            <div class="flex items-center gap-4 mt-3 text-xs text-gray-400">
+                            <p class="text-sm <c:choose><c:when test='${demand.status == \"open\"}'>text-gray-500</c:when><c:otherwise>text-gray-300</c:otherwise></c:choose> mt-1 line-clamp-2">${demand.content}</p>
+                            <div class="flex items-center gap-4 mt-3 text-xs <c:choose><c:when test='${demand.status == \"open\"}'>text-gray-400</c:when><c:otherwise>text-gray-300</c:otherwise></c:choose>">
                                 <span class="flex items-center gap-1">
                                     <span class="w-5 h-5 bg-orange-400 text-white rounded-full flex items-center justify-center text-[10px] font-bold">${fn:substring(demand.authorName, 0, 1)}</span>
                                     ${demand.authorName}
@@ -45,7 +48,7 @@
                             </div>
                         </div>
                         <div class="ml-4 text-center shrink-0">
-                            <div class="text-xl font-bold text-orange-500">${demand.score}</div>
+                            <div class="text-xl font-bold <c:choose><c:when test='${demand.status == \"open\"}'>text-orange-500</c:when><c:otherwise>text-gray-300</c:otherwise></c:choose>">${demand.score}</div>
                             <div class="text-xs text-gray-400">积分</div>
                         </div>
                     </div>

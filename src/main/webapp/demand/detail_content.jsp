@@ -109,11 +109,10 @@
                         <!-- 采纳按钮 -->
                         <c:if test="${sessionScope.user.id == demand.userId && demand.status == 'open' && reply.id != demand.bestReplyId}">
                             <div class="mt-3 pt-3 border-t border-gray-50">
-                                <a href="${pageContext.request.contextPath}/demand/accept?demandId=${demand.id}&replyId=${reply.id}"
-                                   class="inline-flex items-center gap-1 px-3 py-1.5 text-xs text-orange-600 bg-orange-50 border border-orange-200 rounded hover:bg-orange-100 no-underline transition"
-                                   onclick="return confirm('确定采纳此回复？${demand.score} 积分将转给该用户')">
+                                <button onclick="showAcceptModal(${demand.id}, ${reply.id}, ${demand.score})"
+                                   class="inline-flex items-center gap-1 px-3 py-1.5 text-xs text-orange-600 bg-orange-50 border border-orange-200 rounded hover:bg-orange-100 transition cursor-pointer">
                                     <i class="fa fa-check"></i> 采纳此回复
-                                </a>
+                                </button>
                             </div>
                         </c:if>
                     </div>
@@ -205,3 +204,74 @@
 </aside>
 
 </div><!-- /flex -->
+
+<!-- 采纳确认弹窗 -->
+<div id="acceptModal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/40" style="display:none;">
+    <div class="bg-white rounded-xl shadow-2xl max-w-sm w-full mx-4 overflow-hidden animate-fade-in">
+        <div class="p-5 text-center">
+            <div class="w-14 h-14 mx-auto mb-3 rounded-full bg-orange-50 border border-orange-200 flex items-center justify-center">
+                <i class="fa fa-check-circle text-2xl text-orange-500"></i>
+            </div>
+            <h4 class="text-lg font-semibold text-gray-900 mb-2">确认采纳</h4>
+            <p class="text-sm text-gray-500 mb-1">确定采纳此回复为最佳答案？</p>
+            <p class="text-sm text-orange-600 font-medium" id="acceptScoreText">积分将转给该回复者</p>
+        </div>
+        <div class="flex border-t border-gray-100">
+            <button onclick="closeAcceptModal()" class="flex-1 py-3 text-sm text-gray-500 hover:bg-gray-50 transition cursor-pointer border-none bg-transparent">取消</button>
+            <button id="acceptConfirmBtn" onclick="doAccept()" class="flex-1 py-3 text-sm text-orange-600 font-medium hover:bg-orange-50 transition cursor-pointer border-none bg-transparent border-l border-gray-100">
+                <i class="fa fa-check"></i> 确定采纳
+            </button>
+        </div>
+    </div>
+</div>
+
+<style>
+.animate-fade-in { animation: fadeIn 0.15s ease-out; }
+@keyframes fadeIn { from { opacity:0; transform:scale(0.95); } to { opacity:1; transform:scale(1); } }
+</style>
+
+<script>
+var acceptData = { demandId: null, replyId: null };
+
+function showAcceptModal(demandId, replyId, score) {
+    acceptData.demandId = demandId;
+    acceptData.replyId = replyId;
+    document.getElementById('acceptScoreText').textContent = '将转给该回复者 ' + score + ' 积分';
+    document.getElementById('acceptModal').style.display = 'flex';
+}
+
+function closeAcceptModal() {
+    document.getElementById('acceptModal').style.display = 'none';
+}
+
+function doAccept() {
+    var btn = document.getElementById('acceptConfirmBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa fa-spinner fa-pulse"></i> 处理中...';
+
+    fetch('${pageContext.request.contextPath}/demand/accept', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'demandId=' + acceptData.demandId + '&replyId=' + acceptData.replyId
+    }).then(function(r) {
+        if (r.ok) {
+            location.reload();
+        } else {
+            alert('操作失败，请重试');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa fa-check"></i> 确定采纳';
+            closeAcceptModal();
+        }
+    }).catch(function() {
+        alert('网络错误');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa fa-check"></i> 确定采纳';
+        closeAcceptModal();
+    });
+}
+
+// 点击遮罩层关闭
+document.getElementById('acceptModal').addEventListener('click', function(e) {
+    if (e.target === this) closeAcceptModal();
+});
+</script>
