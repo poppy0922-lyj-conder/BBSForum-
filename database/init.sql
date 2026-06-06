@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS users (
     job_type    VARCHAR(50)  DEFAULT '' COMMENT '工作性质',
     job_location VARCHAR(100) DEFAULT '' COMMENT '工作地点',
     role        ENUM('user','admin') NOT NULL DEFAULT 'user' COMMENT '角色',
+    score       INT NOT NULL DEFAULT 0 COMMENT '用户积分',
     created_at  DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '注册时间'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户表';
 
@@ -29,9 +30,9 @@ CREATE TABLE IF NOT EXISTS users (
 -- 注意：此处密码为明文，配合后端“首次登录成功后自动升级为 BCrypt”的兼容策略
 -- - admin / admin123（管理员）
 -- - test  / test123（普通用户）
-INSERT INTO users (username, password, role) VALUES
-('admin', 'admin123', 'admin'),
-('test', 'test123', 'user');
+INSERT INTO users (username, password, role,score) VALUES
+('admin', 'admin123', 'admin',0),
+('test', 'test123', 'user',0);
 
 -- ============================================
 -- 2. 板块表 (组员C负责)
