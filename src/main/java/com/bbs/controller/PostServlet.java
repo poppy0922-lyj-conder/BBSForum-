@@ -107,7 +107,7 @@ public class PostServlet extends HttpServlet {
 
         // 2. 查询帖子
         String postSql = "SELECT p.id, p.title, p.content, p.image_url, p.ai_summary, p.is_top, p.is_elite, " +
-                         "p.keywords, p.view_count, p.user_id, p.category_id, p.created_at, p.updated_at, " +
+                         "p.keywords, p.view_count, p.like_count, p.favorite_count, p.user_id, p.category_id, p.created_at, p.updated_at, " +
                          "u.username AS author_name, c.name AS category_name " +
                          "FROM posts p " +
                          "JOIN users u ON p.user_id = u.id " +
@@ -129,6 +129,8 @@ public class PostServlet extends HttpServlet {
                     post.put("isTop", rs.getInt("is_top"));
                     post.put("isElite", rs.getInt("is_elite"));
                     post.put("viewCount", rs.getInt("view_count"));
+                    post.put("likeCount", rs.getInt("like_count"));
+                    post.put("favoriteCount", rs.getInt("favorite_count"));
                     post.put("userId", rs.getInt("user_id"));
                     post.put("categoryId", rs.getInt("category_id"));
                     post.put("createdAt", rs.getTimestamp("created_at").toString());
@@ -146,6 +148,31 @@ public class PostServlet extends HttpServlet {
         }
         post.put("contentRendered", ContentUtil.render((String) post.get("content")));
         request.setAttribute("post", post);
+
+        // 查询当前登录用户的交互状态（点赞、收藏、关注）
+        Map<String, Object> sessionUser = (Map<String, Object>) request.getSession().getAttribute("user");
+        if (sessionUser != null) {
+            int loginUserId = ((Number) sessionUser.get("id")).intValue();
+            int authorId = (int) post.get("userId");
+            try (Connection conn = DBUtil.getConnection();
+                 PreparedStatement ps = conn.prepareStatement(
+                     "SELECT (SELECT COUNT(*) FROM post_likes WHERE user_id=? AND post_id=?) AS liked, " +
+                     "(SELECT COUNT(*) FROM post_favorites WHERE user_id=? AND post_id=?) AS favorited, " +
+                     "(SELECT COUNT(*) FROM user_follows WHERE user_id=? AND followed_user_id=?) AS followed")) {
+                ps.setInt(1, loginUserId); ps.setInt(2, postId);
+                ps.setInt(3, loginUserId); ps.setInt(4, postId);
+                ps.setInt(5, loginUserId); ps.setInt(6, authorId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        request.setAttribute("userLiked", rs.getInt("liked") > 0);
+                        request.setAttribute("userFavorited", rs.getInt("favorited") > 0);
+                        request.setAttribute("userFollowed", rs.getInt("followed") > 0);
+                    }
+                }
+            } catch (SQLException e) {
+                LOG.log(Level.WARNING, "查询交互状态失败", e);
+            }
+        }
 
         // 3. 查询回复列表
         List<Map<String, Object>> replyList = new ArrayList<>();

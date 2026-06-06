@@ -35,8 +35,11 @@
     </table>
 </div>
 
-<div style="margin-top:16px;">
+<div style="margin-top:16px; display:flex; gap:8px; flex-wrap:wrap;">
     <a href="${pageContext.request.contextPath}/user/profile/edit" class="btn btn-primary">
         <i class="fa fa-edit"></i> 编辑资料
+    </a>
+    <a href="${pageContext.request.contextPath}/user/profile/follows" class="btn btn-outline">
+        <i class="fa fa-users"></i> 我的关注
     </a>
 </div>

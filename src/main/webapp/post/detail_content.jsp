@@ -40,6 +40,11 @@
             <span class="flex items-center gap-1.5">
                 <span class="w-7 h-7 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold">${fn:substring(post.authorName, 0, 1)}</span>
                 <span class="text-gray-700 font-medium">${post.authorName}</span>
+                <c:if test="${not empty sessionScope.user && sessionScope.user.id != post.userId}">
+                    <button onclick="toggleFollow(${post.userId}, this)" class="ml-1 text-xs px-2 py-0.5 rounded border transition cursor-pointer ${userFollowed ? 'bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100' : 'text-gray-500 border-gray-300 hover:bg-gray-100'}">
+                        ${userFollowed ? '已关注' : '+ 关注'}
+                    </button>
+                </c:if>
             </span>
             <span><i class="fa fa-clock-o mr-1"></i> ${post.createdAt}</span>
             <span><i class="fa fa-eye mr-1"></i> ${post.viewCount} 次浏览</span>
@@ -63,6 +68,14 @@
             <button id="aiBtn" onclick="<c:choose><c:when test="${not empty sessionScope.user}">generateAiSummary(${post.id})</c:when><c:otherwise>alert('请先登录后再使用AI总结功能')</c:otherwise></c:choose>" class="inline-flex items-center gap-1 px-3 py-1.5 text-sm text-purple-600 bg-purple-50 border border-purple-200 rounded hover:bg-purple-100 transition cursor-pointer">
                 <i class="fa fa-magic"></i> <span id="aiBtnText">AI总结</span>
             </button>
+            <c:if test="${not empty sessionScope.user}">
+                <button onclick="toggleLike(${post.id}, this)" class="inline-flex items-center gap-1 px-3 py-1.5 text-sm border rounded hover:bg-red-50 transition cursor-pointer ${userLiked ? 'text-red-600 bg-red-50 border-red-200' : 'text-gray-500 bg-white border-gray-200'}">
+                    <i class="fa ${userLiked ? 'fa-heart' : 'fa-heart-o'}"></i> <span class="like-count">${post.likeCount}</span>
+                </button>
+                <button onclick="toggleFavorite(${post.id}, this)" class="inline-flex items-center gap-1 px-3 py-1.5 text-sm border rounded hover:bg-yellow-50 transition cursor-pointer ${userFavorited ? 'text-yellow-600 bg-yellow-50 border-yellow-200' : 'text-gray-500 bg-white border-gray-200'}">
+                    <i class="fa ${userFavorited ? 'fa-bookmark' : 'fa-bookmark-o'}"></i> <span class="favorite-count">${post.favoriteCount}</span>
+                </button>
+            </c:if>
             <c:if test="${sessionScope.user.id == post.userId || sessionScope.user.role == 'admin'}">
                 <a href="${pageContext.request.contextPath}/post/edit?id=${post.id}" class="inline-flex items-center gap-1 px-3 py-1.5 text-sm text-blue-600 bg-blue-50 border border-blue-200 rounded hover:bg-blue-100 no-underline transition">
                     <i class="fa fa-edit"></i> 编辑
@@ -227,6 +240,75 @@ function generateAiSummary(postId) {
         btnText.textContent = 'AI总结';
         btn.disabled = false;
     });
+}
+
+function toggleFollow(authorId, btn) {
+    fetch('${pageContext.request.contextPath}/interact/follow', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'userId=' + authorId
+    }).then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.ok) {
+            if (data.action === 'follow') {
+                btn.textContent = '已关注';
+                btn.className = 'ml-1 text-xs px-2 py-0.5 rounded border transition cursor-pointer bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100';
+            } else {
+                btn.textContent = '+ 关注';
+                btn.className = 'ml-1 text-xs px-2 py-0.5 rounded border transition cursor-pointer text-gray-500 border-gray-300 hover:bg-gray-100';
+            }
+        } else {
+            alert(data.msg || '操作失败');
+        }
+    }).catch(function() { alert('网络错误，请重试'); });
+}
+
+function toggleLike(postId, btn) {
+    fetch('${pageContext.request.contextPath}/interact/like', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'postId=' + postId
+    }).then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.ok) {
+            var icon = btn.querySelector('i');
+            var countSpan = btn.querySelector('.like-count');
+            if (data.action === 'like') {
+                icon.className = 'fa fa-heart';
+                btn.className = 'inline-flex items-center gap-1 px-3 py-1.5 text-sm border rounded hover:bg-red-50 transition cursor-pointer text-red-600 bg-red-50 border-red-200';
+            } else {
+                icon.className = 'fa fa-heart-o';
+                btn.className = 'inline-flex items-center gap-1 px-3 py-1.5 text-sm border rounded hover:bg-red-50 transition cursor-pointer text-gray-500 bg-white border-gray-200';
+            }
+            countSpan.textContent = data.count;
+        } else {
+            alert(data.msg || '操作失败');
+        }
+    }).catch(function() { alert('网络错误，请重试'); });
+}
+
+function toggleFavorite(postId, btn) {
+    fetch('${pageContext.request.contextPath}/interact/favorite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'postId=' + postId
+    }).then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.ok) {
+            var icon = btn.querySelector('i');
+            var countSpan = btn.querySelector('.favorite-count');
+            if (data.action === 'favorite') {
+                icon.className = 'fa fa-bookmark';
+                btn.className = 'inline-flex items-center gap-1 px-3 py-1.5 text-sm border rounded hover:bg-yellow-50 transition cursor-pointer text-yellow-600 bg-yellow-50 border-yellow-200';
+            } else {
+                icon.className = 'fa fa-bookmark-o';
+                btn.className = 'inline-flex items-center gap-1 px-3 py-1.5 text-sm border rounded hover:bg-yellow-50 transition cursor-pointer text-gray-500 bg-white border-gray-200';
+            }
+            countSpan.textContent = data.count;
+        } else {
+            alert(data.msg || '操作失败');
+        }
+    }).catch(function() { alert('网络错误，请重试'); });
 }
 
 function adminAction(url, postId, actionText, actionText2, actionText3) {

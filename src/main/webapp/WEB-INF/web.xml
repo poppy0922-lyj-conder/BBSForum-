@@ -22,6 +22,16 @@
         <url-pattern>/*</url-pattern>
     </filter-mapping>
 
+    <!-- 统计数据过滤器 -->
+    <filter>
+        <filter-name>statsFilter</filter-name>
+        <filter-class>com.bbs.util.StatsFilter</filter-class>
+    </filter>
+    <filter-mapping>
+        <filter-name>statsFilter</filter-name>
+        <url-pattern>/*</url-pattern>
+    </filter-mapping>
+
     <!-- 错误页面 -->
     <error-page>
         <error-code>404</error-code>

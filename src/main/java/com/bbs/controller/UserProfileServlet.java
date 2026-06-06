@@ -15,7 +15,9 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -23,7 +25,7 @@ import java.util.Map;
  * - /user/profile      个人信息展示
  * - /user/profile/edit 资料编辑（可选改密）
  */
-@WebServlet(name = "userProfile", urlPatterns = {"/user/profile", "/user/profile/edit"})
+@WebServlet(name = "userProfile", urlPatterns = {"/user/profile", "/user/profile/edit", "/user/profile/follows"})
 public class UserProfileServlet extends HttpServlet {
 
     @Override
@@ -56,6 +58,10 @@ public class UserProfileServlet extends HttpServlet {
             request.getRequestDispatcher("/user/profile.jsp").forward(request, response);
         } else if ("/user/profile/edit".equals(path)) {
             request.getRequestDispatcher("/user/profile_edit.jsp").forward(request, response);
+        } else if ("/user/profile/follows".equals(path)) {
+            List<Map<String, Object>> followList = loadFollows(userId);
+            request.setAttribute("followList", followList);
+            request.getRequestDispatcher("/user/follows.jsp").forward(request, response);
         }
     }
 
@@ -157,6 +163,32 @@ public class UserProfileServlet extends HttpServlet {
             e.printStackTrace();
         }
         return null;
+    }
+
+    /** 查询当前用户关注的用户列表 */
+    private List<Map<String, Object>> loadFollows(int userId) {
+        List<Map<String, Object>> list = new ArrayList<>();
+        String sql = "SELECT u.id, u.username, u.phone, u.job_type, u.job_location " +
+                     "FROM user_follows f JOIN users u ON f.followed_user_id = u.id " +
+                     "WHERE f.user_id = ? ORDER BY f.created_at DESC";
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, userId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Map<String, Object> user = new HashMap<>();
+                    user.put("id", rs.getInt("id"));
+                    user.put("username", rs.getString("username"));
+                    user.put("phone", rs.getString("phone") == null ? "" : rs.getString("phone"));
+                    user.put("jobType", rs.getString("job_type") == null ? "" : rs.getString("job_type"));
+                    user.put("jobLocation", rs.getString("job_location") == null ? "" : rs.getString("job_location"));
+                    list.add(user);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return list;
     }
 }
 
