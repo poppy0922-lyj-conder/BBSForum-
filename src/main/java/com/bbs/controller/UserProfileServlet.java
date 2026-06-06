@@ -19,6 +19,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * 用户个人中心
@@ -27,6 +29,8 @@ import java.util.Map;
  */
 @WebServlet(name = "userProfile", urlPatterns = {"/user/profile", "/user/profile/edit", "/user/profile/follows"})
 public class UserProfileServlet extends HttpServlet {
+
+    private static final Logger LOG = Logger.getLogger(UserProfileServlet.class.getName());
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -55,6 +59,9 @@ public class UserProfileServlet extends HttpServlet {
             if ("1".equals(request.getParameter("updated"))) {
                 request.setAttribute("message", "资料已更新");
             }
+            // 加载最近积分记录
+            List<Map<String, Object>> scoreLogs = loadScoreLogs(userId);
+            request.setAttribute("scoreLogs", scoreLogs);
             request.getRequestDispatcher("/user/profile.jsp").forward(request, response);
         } else if ("/user/profile/edit".equals(path)) {
             request.getRequestDispatcher("/user/profile_edit.jsp").forward(request, response);
@@ -141,7 +148,7 @@ public class UserProfileServlet extends HttpServlet {
 
     /** 从数据库加载用户信息（用于个人中心展示/回显） */
     private Map<String, Object> loadUserById(int userId) {
-        String sql = "SELECT id, username, role, phone, job_type, job_location, created_at FROM users WHERE id = ?";
+        String sql = "SELECT id, username, role, phone, job_type, job_location, score, created_at FROM users WHERE id = ?";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, userId);
@@ -156,6 +163,7 @@ public class UserProfileServlet extends HttpServlet {
                     user.put("jobLocation", rs.getString("job_location") == null ? "" : rs.getString("job_location"));
                     Timestamp createdAt = rs.getTimestamp("created_at");
                     user.put("createdAt", createdAt == null ? "" : createdAt.toString());
+                    user.put("score", rs.getInt("score"));
                     return user;
                 }
             }
@@ -187,6 +195,28 @@ public class UserProfileServlet extends HttpServlet {
             }
         } catch (SQLException e) {
             e.printStackTrace();
+        }
+        return list;
+    }
+
+    /** 加载用户最近积分记录（最近10条） */
+    private List<Map<String, Object>> loadScoreLogs(int userId) {
+        List<Map<String, Object>> list = new ArrayList<>();
+        String sql = "SELECT score, reason, created_at FROM score_logs WHERE user_id = ? ORDER BY created_at DESC LIMIT 10";
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, userId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Map<String, Object> log = new HashMap<>();
+                    log.put("score", rs.getInt("score"));
+                    log.put("reason", rs.getString("reason") == null ? "" : rs.getString("reason"));
+                    log.put("createdAt", rs.getTimestamp("created_at"));
+                    list.add(log);
+                }
+            }
+        } catch (SQLException e) {
+            LOG.log(Level.WARNING, "加载积分记录失败: userId=" + userId, e);
         }
         return list;
     }
