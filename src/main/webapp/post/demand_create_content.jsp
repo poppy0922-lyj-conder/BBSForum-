@@ -9,6 +9,16 @@
 </div>
 
 <div class="bg-white rounded-lg shadow-sm border border-gray-100 p-6">
+    <c:if test="${not empty param.error}">
+        <div class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
+            <i class="fa fa-exclamation-circle mr-1"></i>
+            <c:choose>
+                <c:when test="${param.error == 'scorezero'}">悬赏积分必须大于 0，请重新设置</c:when>
+                <c:when test="${param.error == 'jifenbuzu'}">你的积分不足以支付本次悬赏</c:when>
+                <c:otherwise>发布失败，请重试</c:otherwise>
+            </c:choose>
+        </div>
+    </c:if>
     <form action="${pageContext.request.contextPath}/demand/create" method="post" class="space-y-4">
         <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">标题 <span class="text-red-500">*</span></label>

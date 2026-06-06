@@ -19,8 +19,7 @@ import java.util.logging.Logger;
  * 需求悬赏控制器
  * 负责：需求列表、发布需求、采纳回复（积分转帐）
  */
-@WebServlet(name = "demand", urlPatterns = {"/demand", "/demand/create", "/demand/accept"})
-@WebServlet(name = "demand", urlPatterns = {"/demand", "/demand/create", "/demand/accept", "/demand/detail"})
+@WebServlet(name = "demand", urlPatterns = {"/demand", "/demand/create", "/demand/accept", "/demand/detail", "/demand/update", "/demand/reply"})
 public class DemandServlet extends HttpServlet {
 
     private static final Logger LOG = Logger.getLogger(DemandServlet.class.getName());
@@ -35,6 +34,11 @@ public class DemandServlet extends HttpServlet {
         if ("/demand/create".equals(path)) {
             request.setAttribute("pageTitle", "发布悬赏");
             request.getRequestDispatcher("/WEB-INF/demand_create.jsp").forward(request, response);
+            return;
+        }
+
+        if ("/demand/update".equals(path)) {
+            showEditForm(request, response);
             return;
         }
 
@@ -78,11 +82,13 @@ public class DemandServlet extends HttpServlet {
         String path = request.getServletPath();
 
         if ("/demand/create".equals(path)) {
-            // 发布需求
             createDemand(request, response);
         } else if ("/demand/accept".equals(path)) {
-            // 采纳回复
             acceptReply(request, response);
+        } else if ("/demand/reply".equals(path)) {
+            handleDemandReply(request, response);
+        } else if ("/demand/update".equals(path)) {
+            updateDemand(request, response);
         } else {
             response.sendError(404);
         }
@@ -94,12 +100,6 @@ public class DemandServlet extends HttpServlet {
     private void createDemand(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
-        if ("/demand/accept".equals(path)) {
-            doAccept(request, response);
-            return;
-        }
-
-        // 发布需求
         String title = request.getParameter("title");
         String content = request.getParameter("content");
         String scoreStr = request.getParameter("score");
@@ -118,24 +118,18 @@ public class DemandServlet extends HttpServlet {
         if (scoreStr != null && !scoreStr.isEmpty()) {
             try { score = Integer.parseInt(scoreStr); } catch (NumberFormatException e) { score = 0; }
         }
-        if (score < 0) score = 0;
-        if (score > 10000) score = 10000; // 防止极端值
+        if (score <= 0) {
+            response.sendRedirect(request.getContextPath() + "/demand/create?error=scorezero");
+            return;
+        }
+        if (score > 10000) score = 10000;
+
+        int categoryId = 0;
+        if (categoryIdStr != null && !categoryIdStr.isEmpty()) {
+            try { categoryId = Integer.parseInt(categoryIdStr); } catch (NumberFormatException e) { categoryId = 0; }
+        }
 
         // 检查用户积分是否足够
-        if (score > 0) {
-            int userScore = getUserScore(userId);
-            if (userScore < score) {
-                response.sendRedirect(request.getContextPath() + "/demand/create?error=score");
-                return;
-            }
-        }
-
-        int categoryId = 1; // 默认板块
-        if (categoryIdStr != null && !categoryIdStr.isEmpty()) {
-            try { categoryId = Integer.parseInt(categoryIdStr); } catch (NumberFormatException e) { categoryId = 1; }
-        }
-
-        // 如果悬赏积分大于0，检查用户积分是否足够
         if (score > 0) {
             int currentScore = 0;
             String checkSql = "SELECT score FROM users WHERE id = ?";
@@ -162,7 +156,7 @@ public class DemandServlet extends HttpServlet {
             conn = DBUtil.getConnection();
             conn.setAutoCommit(false);
 
-            // 1. 插入需求（添加 category_id 字段）
+            // 1. 插入需求
             String insertSql = "INSERT INTO demands (title, content, user_id, category_id, score, status) VALUES (?, ?, ?, ?, ?, 'open')";
             try (PreparedStatement ps = conn.prepareStatement(insertSql)) {
                 ps.setString(1, title);
@@ -198,37 +192,6 @@ public class DemandServlet extends HttpServlet {
             conn.commit();
             LOG.info("需求发布成功: " + title + "，支出积分: " + score);
 
-        String sql = "INSERT INTO demands (title, content, user_id, score, status) VALUES (?, ?, ?, ?, 'open')";
-        try (Connection conn = DBUtil.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, title);
-            ps.setString(2, content);
-            ps.setInt(3, userId);
-            ps.setInt(4, score);
-            ps.executeUpdate();
-            LOG.info("需求发布成功: " + title);
-
-            // 扣除发布者的积分并记录流水
-            if (score > 0) {
-                try (PreparedStatement ps2 = conn.prepareStatement(
-                        "UPDATE users SET score = score - ? WHERE id = ? AND score >= ?")) {
-                    ps2.setInt(1, score);
-                    ps2.setInt(2, userId);
-                    ps2.setInt(3, score);
-                    int updated = ps2.executeUpdate();
-                    if (updated == 0) {
-                        LOG.warning("扣除积分失败，用户积分不足: userId=" + userId);
-                        // 回滚？但插入已经执行，简单记录日志
-                    }
-                }
-                try (PreparedStatement ps3 = conn.prepareStatement(
-                        "INSERT INTO score_logs (user_id, score, reason) VALUES (?, ?, ?)")) {
-                    ps3.setInt(1, userId);
-                    ps3.setInt(2, -score);
-                    ps3.setString(3, "发布悬赏");
-                    ps3.executeUpdate();
-                }
-            }
         } catch (SQLException e) {
             if (conn != null) {
                 try { conn.rollback(); } catch (SQLException ex) { ex.printStackTrace(); }
@@ -246,13 +209,50 @@ public class DemandServlet extends HttpServlet {
     }
 
     /**
-     * 采纳回复 - 给回复者增加积分并记录流水
+     * 需求回复 - 保存回复到 demand_replies 表
      */
+    private void handleDemandReply(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        Object userObj = request.getSession().getAttribute("user");
+        if (userObj == null) {
+            response.sendRedirect(request.getContextPath() + "/user/login");
+            return;
+        }
+        @SuppressWarnings("unchecked")
+        Map<String, Object> user = (Map<String, Object>) userObj;
+        int userId = ((Number) user.get("id")).intValue();
+
+        String content = request.getParameter("content");
+        String demandIdStr = request.getParameter("demandId");
+
+        if (content == null || content.trim().isEmpty() || demandIdStr == null) {
+            response.sendRedirect(request.getContextPath() + "/demand");
+            return;
+        }
+
+        int demandId = Integer.parseInt(demandIdStr);
+
+        String sql = "INSERT INTO demand_replies (content, user_id, demand_id) VALUES (?, ?, ?)";
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, content.trim());
+            ps.setInt(2, userId);
+            ps.setInt(3, demandId);
+            ps.executeUpdate();
+            LOG.info("需求回复成功: demandId=" + demandId + ", 用户=" + user.get("username"));
+
+            // 回复 +2 积分
+            addScore(userId, 2, "回复需求");
+        } catch (SQLException e) {
+            LOG.log(Level.SEVERE, "需求回复失败, demandId=" + demandId, e);
+        }
+
+        response.sendRedirect(request.getContextPath() + "/demand/detail?id=" + demandId);
+    }
+
+    /** 采纳回复 - 给回复者增加积分并记录流水 */
     private void acceptReply(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-    /** 采纳回复：将积分转给最佳回复者 */
-    private void doAccept(HttpServletRequest request, HttpServletResponse response)
-            throws IOException {
 
         Object userObj = request.getSession().getAttribute("user");
         if (userObj == null) {
@@ -309,7 +309,7 @@ public class DemandServlet extends HttpServlet {
 
             // 2. 查询回复作者
             int replyUserId = 0;
-            String replySql = "SELECT user_id FROM replies WHERE id = ?";
+            String replySql = "SELECT user_id FROM demand_replies WHERE id = ?";
             try (PreparedStatement ps = conn.prepareStatement(replySql)) {
                 ps.setInt(1, replyId);
                 try (ResultSet rs = ps.executeQuery()) {
@@ -330,95 +330,16 @@ public class DemandServlet extends HttpServlet {
             if (demandScore > 0) {
                 String addSql = "UPDATE users SET score = score + ? WHERE id = ?";
                 try (PreparedStatement ps = conn.prepareStatement(addSql)) {
-        int loginUserId = ((Number) user.get("id")).intValue();
-
-        int demandId, replyId;
-        try {
-            demandId = Integer.parseInt(request.getParameter("demandId"));
-            replyId = Integer.parseInt(request.getParameter("replyId"));
-        } catch (NumberFormatException e) {
-            response.sendRedirect(request.getContextPath() + "/demand");
-            return;
-        }
-
-        try (Connection conn = DBUtil.getConnection()) {
-            // 1. 查询需求信息
-            String demandSql = "SELECT user_id, score, status FROM demands WHERE id = ?";
-            int demandUserId, demandScore;
-            String demandStatus;
-            try (PreparedStatement ps = conn.prepareStatement(demandSql)) {
-                ps.setInt(1, demandId);
-                try (ResultSet rs = ps.executeQuery()) {
-                    if (!rs.next()) {
-                        response.sendRedirect(request.getContextPath() + "/demand");
-                        return;
-                    }
-                    demandUserId = rs.getInt("user_id");
-                    demandScore = rs.getInt("score");
-                    demandStatus = rs.getString("status");
-                }
-            }
-
-            // 2. 权限验证：只有发布者可以采纳
-            if (loginUserId != demandUserId) {
-                response.sendRedirect(request.getContextPath() + "/demand/detail?id=" + demandId);
-                return;
-            }
-
-            // 3. 状态验证：必须为进行中
-            if (!"open".equals(demandStatus)) {
-                response.sendRedirect(request.getContextPath() + "/demand/detail?id=" + demandId);
-                return;
-            }
-
-            // 4. 查询回复者ID（回复来自 replies 表，通过 post_id 关联 demand）
-            int replyUserId = 0;
-            String replySql = "SELECT user_id FROM replies WHERE id = ? AND post_id = ?";
-            try (PreparedStatement ps = conn.prepareStatement(replySql)) {
-                ps.setInt(1, replyId);
-                ps.setInt(2, demandId);
-                try (ResultSet rs = ps.executeQuery()) {
-                    if (rs.next()) {
-                        replyUserId = rs.getInt("user_id");
-                    }
-                }
-            }
-
-            if (replyUserId == 0) {
-                response.sendRedirect(request.getContextPath() + "/demand/detail?id=" + demandId);
-                return;
-            }
-
-            // 5. 更新需求状态
-            try (PreparedStatement ps = conn.prepareStatement(
-                    "UPDATE demands SET status = 'closed', best_reply_id = ? WHERE id = ?")) {
-                ps.setInt(1, replyId);
-                ps.setInt(2, demandId);
-                ps.executeUpdate();
-            }
-
-            // 6. 积分转帐（如果有悬赏积分）
-            if (demandScore > 0) {
-                // 给回复者加分
-                try (PreparedStatement ps = conn.prepareStatement(
-                        "UPDATE users SET score = score + ? WHERE id = ?")) {
                     ps.setInt(1, demandScore);
                     ps.setInt(2, replyUserId);
                     ps.executeUpdate();
                 }
 
-                // 记录积分流水（正数表示获得）
                 String logSql = "INSERT INTO score_logs (user_id, score, reason) VALUES (?, ?, ?)";
                 try (PreparedStatement ps = conn.prepareStatement(logSql)) {
                     ps.setInt(1, replyUserId);
                     ps.setInt(2, demandScore);
                     ps.setString(3, "回复被采纳，获得悬赏 " + demandScore + " 积分");
-                // 回复者积分流水
-                try (PreparedStatement ps = conn.prepareStatement(
-                        "INSERT INTO score_logs (user_id, score, reason) VALUES (?, ?, ?)")) {
-                    ps.setInt(1, replyUserId);
-                    ps.setInt(2, demandScore);
-                    ps.setString(3, "悬赏被采纳: demandId=" + demandId);
                     ps.executeUpdate();
                 }
             }
@@ -448,14 +369,109 @@ public class DemandServlet extends HttpServlet {
         }
 
         response.sendRedirect(request.getContextPath() + "/demand/detail?id=" + demandId + "&accepted=1");
-            LOG.info("需求采纳成功: demandId=" + demandId + ", replyId=" + replyId
-                     + ", score=" + demandScore + " from user" + demandUserId + " to user" + replyUserId);
+    }
 
-        } catch (SQLException e) {
-            LOG.log(Level.SEVERE, "采纳回复失败: demandId=" + demandId, e);
+    /** 编辑表单：加载需求数据 */
+    private void showEditForm(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        int demandId;
+        try {
+            demandId = Integer.parseInt(request.getParameter("id"));
+        } catch (NumberFormatException e) {
+            response.sendRedirect(request.getContextPath() + "/demand");
+            return;
         }
 
-        response.sendRedirect(request.getContextPath() + "/demand/detail?id=" + demandId);
+        // 验证登录
+        Object userObj = request.getSession().getAttribute("user");
+        if (userObj == null) {
+            response.sendRedirect(request.getContextPath() + "/user/login");
+            return;
+        }
+        @SuppressWarnings("unchecked")
+        Map<String, Object> user = (Map<String, Object>) userObj;
+        int userId = ((Number) user.get("id")).intValue();
+
+        String sql = "SELECT id, title, content, score, status, user_id FROM demands WHERE id = ?";
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, demandId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    // 验证：只有发布者可以编辑
+                    if (rs.getInt("user_id") != userId) {
+                        response.sendRedirect(request.getContextPath() + "/demand/detail?id=" + demandId);
+                        return;
+                    }
+                    // 验证：只有进行中可编辑
+                    if (!"open".equals(rs.getString("status"))) {
+                        response.sendRedirect(request.getContextPath() + "/demand/detail?id=" + demandId);
+                        return;
+                    }
+                    Map<String, Object> demand = new HashMap<>();
+                    demand.put("id", rs.getInt("id"));
+                    demand.put("title", rs.getString("title"));
+                    demand.put("content", rs.getString("content"));
+                    demand.put("score", rs.getInt("score"));
+                    request.setAttribute("demand", demand);
+                } else {
+                    response.sendRedirect(request.getContextPath() + "/demand");
+                    return;
+                }
+            }
+        } catch (SQLException e) {
+            LOG.log(Level.SEVERE, "查询需求编辑信息失败", e);
+            response.sendRedirect(request.getContextPath() + "/demand");
+            return;
+        }
+
+        request.setAttribute("pageTitle", "编辑需求");
+        request.getRequestDispatcher("/WEB-INF/demand_edit.jsp").forward(request, response);
+    }
+
+    /** 保存编辑 */
+    private void updateDemand(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        int demandId;
+        try {
+            demandId = Integer.parseInt(request.getParameter("id"));
+        } catch (NumberFormatException e) {
+            response.sendRedirect(request.getContextPath() + "/demand");
+            return;
+        }
+
+        Object userObj = request.getSession().getAttribute("user");
+        if (userObj == null) {
+            response.sendRedirect(request.getContextPath() + "/user/login");
+            return;
+        }
+        @SuppressWarnings("unchecked")
+        Map<String, Object> user = (Map<String, Object>) userObj;
+        int userId = ((Number) user.get("id")).intValue();
+
+        String title = request.getParameter("title");
+        String content = request.getParameter("content");
+
+        String sql = "UPDATE demands SET title = ?, content = ? WHERE id = ? AND user_id = ? AND status = 'open'";
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, title);
+            ps.setString(2, content);
+            ps.setInt(3, demandId);
+            ps.setInt(4, userId);
+            int affected = ps.executeUpdate();
+            if (affected == 0) {
+                response.sendRedirect(request.getContextPath() + "/demand/detail?id=" + demandId + "&error=编辑失败");
+                return;
+            }
+            LOG.info("需求编辑成功: demandId=" + demandId);
+        } catch (SQLException e) {
+            LOG.log(Level.SEVERE, "编辑需求失败", e);
+            response.sendRedirect(request.getContextPath() + "/demand/detail?id=" + demandId + "&error=编辑失败");
+            return;
+        }
+
+        response.sendRedirect(request.getContextPath() + "/demand/detail?id=" + demandId + "&updated=1");
     }
 
     /** 需求详情页 */
@@ -502,8 +518,8 @@ public class DemandServlet extends HttpServlet {
         // 查询回复列表
         List<Map<String, Object>> replyList = new ArrayList<>();
         String replySql = "SELECT r.id, r.content, r.created_at, u.username AS author_name, u.id AS user_id " +
-                          "FROM replies r JOIN users u ON r.user_id = u.id " +
-                          "WHERE r.post_id = ? ORDER BY r.created_at ASC";
+                          "FROM demand_replies r JOIN users u ON r.user_id = u.id " +
+                          "WHERE r.demand_id = ? ORDER BY r.created_at ASC";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(replySql)) {
             ps.setInt(1, demandId);
@@ -545,6 +561,27 @@ public class DemandServlet extends HttpServlet {
         return 0;
     }
 
+    /** 给用户增加积分并写入流水（失败不影响主流程） */
+    private void addScore(int userId, int score, String reason) {
+        String sql1 = "UPDATE users SET score = score + ? WHERE id = ?";
+        String sql2 = "INSERT INTO score_logs (user_id, score, reason) VALUES (?, ?, ?)";
+        try (Connection conn = DBUtil.getConnection()) {
+            try (PreparedStatement ps = conn.prepareStatement(sql1)) {
+                ps.setInt(1, score);
+                ps.setInt(2, userId);
+                ps.executeUpdate();
+            }
+            try (PreparedStatement ps = conn.prepareStatement(sql2)) {
+                ps.setInt(1, userId);
+                ps.setInt(2, score);
+                ps.setString(3, reason);
+                ps.executeUpdate();
+            }
+        } catch (SQLException e) {
+            LOG.log(Level.WARNING, "加分失败: userId=" + userId + ", score=" + score, e);
+        }
+    }
+
     private int countDemands() {
         try (Connection conn = DBUtil.getConnection();
              Statement stmt = conn.createStatement();
@@ -560,9 +597,9 @@ public class DemandServlet extends HttpServlet {
         List<Map<String, Object>> list = new ArrayList<>();
         int offset = (page - 1) * PAGE_SIZE;
         String sql = "SELECT d.id, d.title, d.content, d.score, d.status, d.created_at, " +
-                "u.username AS author_name " +
-                "FROM demands d JOIN users u ON d.user_id = u.id " +
-                "ORDER BY d.created_at DESC LIMIT ? OFFSET ?";
+                     "u.username AS author_name " +
+                     "FROM demands d JOIN users u ON d.user_id = u.id " +
+                     "ORDER BY d.created_at DESC LIMIT ? OFFSET ?";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, PAGE_SIZE);
