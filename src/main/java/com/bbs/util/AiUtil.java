@@ -3,26 +3,43 @@ package com.bbs.util;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import java.io.*;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.util.Properties;
 import java.util.logging.Logger;
 
 /**
  * AI 工具类 - 调用硅基流动 API 生成帖子内容总结
  *
  * 接口：https://docs.siliconflow.cn
+ * API Key 等配置从 src/main/resources/config.properties 读取
  */
 public class AiUtil {
 
     private static final Logger LOG = Logger.getLogger(AiUtil.class.getName());
 
     // 硅基流动 API 配置
-    private static final String API_KEY = "你的硅基流动API-Key";
-    private static final String API_URL = "https://api.siliconflow.cn/v1/chat/completions";
-    private static final String MODEL = "Qwen/Qwen2.5-7B-Instruct";
+    private static final String API_KEY;
+    private static final String API_URL;
+    private static final String MODEL;
+
+    static {
+        Properties config = new Properties();
+        try (InputStream is = AiUtil.class.getResourceAsStream("/config.properties")) {
+            if (is != null) {
+                config.load(is);
+            }
+        } catch (IOException e) {
+            LOG.warning("加载配置文件失败: " + e.getMessage());
+        }
+        API_KEY = config.getProperty("ai.api.key", "");
+        API_URL = config.getProperty("ai.api.url", "https://api.siliconflow.cn/v1/chat/completions");
+        MODEL = config.getProperty("ai.model", "Qwen/Qwen2.5-7B-Instruct");
+    }
 
     private static final HttpClient HTTP = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(10))
