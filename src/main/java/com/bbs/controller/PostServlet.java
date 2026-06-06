@@ -303,7 +303,7 @@ public class PostServlet extends HttpServlet {
                     LOG.info("新帖发布成功, postId=" + newId + ", 作者=" + user.get("username"));
 
                     // 发帖 +10 积分
-                    addScore(userId, 10, "发布帖子: " + title.trim());
+                    addScore(userId, 10, "发布帖子");
 
                     response.sendRedirect(request.getContextPath() + "/post/detail?id=" + newId);
                     return;
@@ -356,7 +356,7 @@ public class PostServlet extends HttpServlet {
             LOG.info("新回复成功, postId=" + postId + ", 用户=" + user.get("username"));
 
             // 回复 +2 积分
-            addScore(userId, 2, "回复帖子: postId=" + postId);
+            addScore(userId, 2, "回复帖子");
         } catch (SQLException e) {
             LOG.log(Level.SEVERE, "发表回复失败, postId=" + postId, e);
         }

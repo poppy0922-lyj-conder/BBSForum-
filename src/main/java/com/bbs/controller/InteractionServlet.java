@@ -110,7 +110,7 @@ public class InteractionServlet extends HttpServlet {
                 updateCount(conn, "UPDATE posts SET like_count = like_count + 1 WHERE id=?", postId);
 
                 // 点赞 +3 积分（给帖子作者）
-                addScoreToPostAuthor(conn, postId, 3, "帖子被点赞: postId=" + postId);
+                addScoreToPostAuthor(conn, postId, 3, "帖子被点赞");
 
                 int count = getCount(conn, "SELECT like_count FROM posts WHERE id=?", postId);
                 response.getWriter().write("{\"ok\":true,\"action\":\"like\",\"count\":" + count + "}");
