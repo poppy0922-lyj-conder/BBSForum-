@@ -37,16 +37,19 @@
     </c:when>
     <c:otherwise>
         <c:forEach var="post" items="${postList}">
+            <c:url value="/cover/${post.id}" var="coverUrl">
+                <c:param name="title" value="${post.title}"/>
+            </c:url>
             <article class="bg-white rounded-lg shadow-sm hover:shadow-md transition-all border border-gray-100 overflow-hidden cursor-pointer mb-3" onclick="location.href='${pageContext.request.contextPath}/post/detail?id=${post.id}'">
                 <div class="flex">
                     <!-- 封面图 -->
                     <div class="w-52 h-32 shrink-0 overflow-hidden bg-gray-100">
                         <c:choose>
                             <c:when test="${not empty post.imageUrl}">
-                                <img src="${post.imageUrl}" alt="${post.title}" class="w-full h-full object-cover" onerror="this.src='${pageContext.request.contextPath}/cover/${post.id}?title=${fn:substring(post.title, 0, 1)}'">
+                                <img src="${post.imageUrl}" alt="${post.title}" class="w-full h-full object-cover" onerror="this.src='${coverUrl}'">
                             </c:when>
                             <c:otherwise>
-                                <img src="${pageContext.request.contextPath}/cover/${post.id}?title=${fn:substring(post.title, 0, 1)}" alt="${post.title}" class="w-full h-full object-cover">
+                                <img src="${coverUrl}" alt="${post.title}" class="w-full h-full object-cover">
                             </c:otherwise>
                         </c:choose>
                     </div>

@@ -116,12 +116,15 @@
         <!-- 封面图 -->
         <div class="mb-6">
             <label class="block text-sm font-medium text-gray-700 mb-1.5">封面图片</label>
+            <c:url value="/cover/${post.id}" var="coverUrl">
+                <c:param name="title" value="${post.title}"/>
+            </c:url>
             <c:choose>
                 <c:when test="${not empty post.imageUrl}">
                     <img src="${post.imageUrl}" class="w-40 h-24 object-cover rounded mb-2 border" onerror="this.style.display='none'" alt="当前封面">
                 </c:when>
                 <c:otherwise>
-                    <img src="${pageContext.request.contextPath}/cover/${post.id}?title=${fn:substring(post.title, 0, 1)}" class="w-40 h-24 object-cover rounded mb-2 border" alt="当前封面">
+                    <img src="${coverUrl}" class="w-40 h-24 object-cover rounded mb-2 border" alt="当前封面">
                 </c:otherwise>
             </c:choose>
             <div class="flex items-center gap-3 mb-2">

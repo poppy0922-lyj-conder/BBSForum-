@@ -17,6 +17,9 @@
 
 <!-- 帖子主体 -->
 <article class="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden mb-6">
+    <c:url value="/cover/${post.id}" var="coverUrl">
+        <c:param name="title" value="${post.title}"/>
+    </c:url>
     <c:choose>
         <c:when test="${not empty post.imageUrl}">
             <div class="w-full bg-gray-100">
@@ -25,7 +28,7 @@
         </c:when>
         <c:otherwise>
             <div class="w-full bg-gray-100">
-                <img src="${pageContext.request.contextPath}/cover/${post.id}?title=${fn:substring(post.title, 0, 1)}" alt="${post.title}" class="w-full max-h-80 object-cover">
+                <img src="${coverUrl}" alt="${post.title}" class="w-full max-h-80 object-cover">
             </div>
         </c:otherwise>
     </c:choose>
