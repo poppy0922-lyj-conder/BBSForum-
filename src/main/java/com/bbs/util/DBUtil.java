@@ -1,18 +1,32 @@
 package com.bbs.util;
 
+import java.io.*;
 import java.sql.*;
+import java.util.Properties;
 
 /**
  * 数据库连接工具类
- * 使用前请修改 DB_URL、DB_USER、DB_PASS 为实际值
+ * 配置信息从 src/main/resources/config.properties 读取
  */
 public class DBUtil {
 
-    private static final String DB_URL = "jdbc:mysql://localhost:3306/bbs_forum?useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=utf8";
-    private static final String DB_USER = "root";
-    private static final String DB_PASS = "121510@Lkd";
+    private static final String DB_URL;
+    private static final String DB_USER;
+    private static final String DB_PASS;
 
     static {
+        Properties config = new Properties();
+        try (InputStream is = DBUtil.class.getResourceAsStream("/config.properties")) {
+            if (is != null) {
+                config.load(is);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        DB_URL = config.getProperty("db.url", "jdbc:mysql://localhost:3306/bbs_forum?useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=utf8");
+        DB_USER = config.getProperty("db.user", "root");
+        DB_PASS = config.getProperty("db.password", "");
+
         try {
             Class.forName("com.mysql.cj.jdbc.Driver");
         } catch (ClassNotFoundException e) {
