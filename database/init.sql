@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS users (
     job_type    VARCHAR(50)  DEFAULT '' COMMENT '工作性质',
     job_location VARCHAR(100) DEFAULT '' COMMENT '工作地点',
     role        ENUM('user','admin') NOT NULL DEFAULT 'user' COMMENT '角色',
+    score       INT NOT NULL DEFAULT 0 COMMENT '积分',
     created_at  DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '注册时间'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户表';
 
