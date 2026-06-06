@@ -185,7 +185,7 @@ public class CoverServlet extends HttpServlet {
                     end = breakAt;
                 }
             }
-            lines.add(text.substring(start, end)).trim();
+            lines.add(text.substring(start, end).trim());
             start = end;
         }
         return lines;
