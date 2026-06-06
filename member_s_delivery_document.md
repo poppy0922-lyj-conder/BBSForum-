@@ -494,3 +494,86 @@ function toggleLike(postId, btn) {
 6. **编码**：全部使用 UTF-8 编码，通过 `EncodingFilter` 统一处理。
 7. **安全配置**：敏感信息（数据库密码 `db.password`、API密钥 `ai.api.key`）统一存放在 `config.properties` 中，此文件已加入 `.gitignore`，不上传到远程仓库。其他开发者使用 `config.properties.template` 填入自己的配置。
 8. **互动操作**：关注/点赞/收藏均为 AJAX 异步请求，无页面刷新。所有互动操作需要登录状态，未登录时按钮不显示。
+
+### 8. 封面图片自动生成 (CoverServlet)
+
+**功能描述**：
+- 帖子没有设置封面图时，自动生成 SVG 格式的彩色封面图片
+- 10 组预设渐变配色，通过 `postId % 10` 确定性选择
+- 封面显示标题首字符 + 装饰性圆形
+- 生成的 SVG 支持高清屏（viewBox 416×256）
+- 设置 `Cache-Control: max-age=86400` 缓存一天
+
+**相关文件**：
+- `src/main/java/com/bbs/controller/CoverServlet.java` — 封面生成控制器
+
+**请求示例**：
+```
+GET /cover/42?title=J
+```
+返回 SVG 图片（Content-Type: image/svg+xml）
+
+### 9. 统一弹窗系统 (Unified Modal)
+
+**功能描述**：
+- 使用自定义模态框替换所有原生 `alert()`、`confirm()` 弹窗
+- 三种视觉模式：蓝色提示（alert）、橙色确认（confirm）、红色错误（error）
+- Promise 异步模式：`window.alert()` → 返回 Promise，`showConfirm()` → 返回 Promise&lt;boolean&gt;，`showError()` → 错误专用弹窗
+- 支持点击遮罩层关闭确认弹窗
+- 所有 JSP 中的原生 confirm 已全部替换为 `showConfirm()`
+
+**相关文件**：
+- `src/main/webapp/layouts/main.jsp` — 模态框 HTML + JavaScript 定义
+- `src/main/webapp/post/detail_content.jsp` — adminAction、删除帖子确认替换
+- `src/main/webapp/user/follows_content.jsp` — 取消关注确认替换
+- `src/main/webapp/admin/categories_content.jsp` — 删除板块确认替换
+- `src/main/webapp/demand/detail_content.jsp` — 采纳回复确认替换
+
+### 10. 积分系统集成
+
+**功能描述**：
+- **发帖 +10 分**：在 `PostServlet.handleCreatePost()` 发帖成功后，调用积分工具给作者加 10 分，写入 `score_logs`
+- **回复 +2 分**：在 `PostServlet.handleReply()` 回复成功后，给回复者加 2 分，写入 `score_logs`
+- **点赞 +3 分**：在 `InteractionServlet.doLike()` 点赞时，给帖子作者加 3 分，写入 `score_logs`
+- **登录 +2 分**：在 `UserServlet` 登录成功后，当天首次登录发放 +2 分
+- 所有积分变动使用事务保证原子性
+
+**相关文件**：
+- `src/main/java/com/bbs/controller/PostServlet.java` — 发帖+10、回复+2
+- `src/main/java/com/bbs/controller/InteractionServlet.java` — 点赞+3
+- `src/main/java/com/bbs/controller/UserServlet.java` — 登录+2
+
+## API 端点补充
+
+### 封面图片 API
+
+| URL | 方法 | 功能 | 参数 | 返回 |
+|-----|------|------|------|------|
+| `/cover/*` | GET | 生成SVG封面图 | 路径为postId，query参数title(标题) | SVG图片 image/svg+xml |
+
+### 积分相关 API（组长负责）
+
+| URL | 方法 | 功能 | 参数 | 返回 |
+|-----|------|------|------|------|
+| `/post/create` | POST | 发帖+10分 | title, content, categoryId, keywords | 重定向到详情页 |
+| `/post/reply` | POST | 回复+2分 | postId, content | 重定向回详情页 |
+| `/interact/like` | POST | 点赞+3分 | postId | JSON `{"ok":true,"action":"like/unlike","count":N}` |
+
+## 文件新增
+
+### CoverServlet
+
+```java
+@WebServlet("/cover/*")
+public class CoverServlet extends HttpServlet {
+    // 根据postId确定颜色方案
+    // 生成SVG包含渐变背景+标题首字符+装饰圆形
+    // 返回image/svg+xml，Cache-Control: max-age=86400
+}
+```
+
+## 注意事项（补充）
+
+9. **封面图优先级**：`posts.image_url` 非空时使用原图；为空时自动通过 CoverServlet 生成。CoverServlet 返回的 SVG 依赖标题首字符，无标题时使用 "?" 占位。
+10. **模态框兼容**：`window.alert()` 已被重写为异步 Promise 模式，理论上不影响任何原有 alert 调用。`showConfirm()` 返回 Promise，不再同步阻塞，需要将原有 `if (confirm(...))` 改为 `await showConfirm(...)` 模式。
+11. **积分并发控制**：积分变动（发帖/回复/点赞）使用数据库行锁 `SELECT ... FOR UPDATE`，防止并发场景下积分错误。所有积分事务使用 `conn.setAutoCommit(false)` + commit/rollback 保证原子性。
