@@ -18,7 +18,7 @@ import java.util.Map;
  * - 保护个人中心：/user/profile 与 /user/profile/*
  * - 保护后台：/admin 与 /admin/*
  */
-@WebFilter(urlPatterns = {"/user/profile", "/user/profile/*", "/admin", "/admin/*"})
+@WebFilter(urlPatterns = {"/user/profile", "/user/profile/*", "/user/score-log", "/admin", "/admin/*"})
 public class AuthFilter implements Filter {
 
     @Override

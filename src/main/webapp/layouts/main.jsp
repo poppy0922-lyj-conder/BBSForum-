@@ -49,7 +49,7 @@
                         <a href="${pageContext.request.contextPath}/admin" class="text-xs px-3 py-1 border border-gray-300 rounded text-gray-600 hover:text-blue-500 no-underline">管理</a>
                     </c:if>
                     <a href="${pageContext.request.contextPath}/user/profile" class="text-xs px-3 py-1 border border-gray-300 rounded text-gray-600 hover:text-blue-500 no-underline">我的</a>
-                    <a href="${pageContext.request.contextPath}/logout" class="text-xs px-3 py-1 border border-gray-300 rounded text-gray-600 hover:text-blue-500 no-underline">退出</a>
+                    <a href="${pageContext.request.contextPath}/" class="text-xs px-3 py-1 border border-gray-300 rounded text-gray-600 hover:text-blue-500 no-underline"><i class="fa fa-home"></i> 首页</a>
                 </c:when>
                 <c:otherwise>
                     <a href="${pageContext.request.contextPath}/user/login" class="text-sm px-4 py-1.5 border border-gray-300 rounded text-gray-600 hover:text-blue-500 no-underline">登录</a>
