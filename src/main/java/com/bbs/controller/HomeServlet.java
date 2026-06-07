@@ -86,7 +86,8 @@ public class HomeServlet extends HttpServlet {
         }
 
         List<Map<String, Object>> list = new ArrayList<>();
-        String sql = "SELECT id, name, description FROM categories ORDER BY sort_order";
+        // 使用 DISTINCT 去重，防止数据库中存在重复sort_order导致板块重复显示
+        String sql = "SELECT DISTINCT id, name, description, sort_order FROM categories ORDER BY sort_order, id";
         try (Connection conn = DBUtil.getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {

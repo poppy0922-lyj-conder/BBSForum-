@@ -30,6 +30,9 @@ public class CategoryServlet extends HttpServlet {
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
+        // 确保 ServletContext 中有板块列表（供侧边栏使用）
+        loadCategoriesIfNeeded(request);
+
         // 获取板块ID参数（增加 NumberFormatException 校验）
         String categoryIdStr = request.getParameter("id");
         int categoryId;
@@ -81,6 +84,25 @@ public class CategoryServlet extends HttpServlet {
 
         // 转发到首页模板
         request.getRequestDispatcher("/WEB-INF/home.jsp").forward(request, response);
+    }
+
+    /** 加载板块列表到 ServletContext（供侧边栏使用） */
+    private void loadCategoriesIfNeeded(HttpServletRequest request) {
+        if (getServletContext().getAttribute("categoryList") != null) {
+            return;
+        }
+        List<Map<String, Object>> list = new ArrayList<>();
+        String sql = "SELECT id, name, description FROM categories ORDER BY sort_order";
+        try (Connection conn = DBUtil.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            while (rs.next()) {
+                list.add(PostMapper.mapCategoryRow(rs));
+            }
+        } catch (SQLException e) {
+            LOG.log(Level.SEVERE, "加载板块列表失败", e);
+        }
+        getServletContext().setAttribute("categoryList", list);
     }
 
     /** 加载单个板块信息 */
