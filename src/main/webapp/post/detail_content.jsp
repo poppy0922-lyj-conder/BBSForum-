@@ -72,9 +72,9 @@
             ${post.contentRendered}
         </div>
         <div class="flex items-center gap-2 pt-4 border-t border-gray-100 flex-wrap">
-            <button onclick="history.back()" class="inline-flex items-center gap-1 px-3 py-1.5 text-sm text-gray-500 bg-gray-100 border border-gray-200 rounded hover:bg-gray-200 transition cursor-pointer">
+            <a href="javascript:history.back()" onclick="event.preventDefault(); location.href = document.referrer || '${pageContext.request.contextPath}/'" class="inline-flex items-center gap-1 px-3 py-1.5 text-sm text-gray-500 bg-gray-100 border border-gray-200 rounded hover:bg-gray-200 transition no-underline cursor-pointer">
                 <i class="fa fa-arrow-left"></i> 返回
-            </button>
+            </a>
             <button id="aiBtn" onclick="<c:choose><c:when test="${not empty sessionScope.user}">generateAiSummary(${post.id})</c:when><c:otherwise>alert('请先登录后再使用AI总结功能')</c:otherwise></c:choose>" class="inline-flex items-center gap-1 px-3 py-1.5 text-sm text-purple-600 bg-purple-50 border border-purple-200 rounded hover:bg-purple-100 transition cursor-pointer">
                 <i class="fa fa-magic"></i> <span id="aiBtnText">AI总结</span>
             </button>
