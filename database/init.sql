@@ -76,6 +76,17 @@ CREATE TABLE IF NOT EXISTS posts (
     FOREIGN KEY (category_id) REFERENCES categories(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='帖子表';
 
+-- 插入测试帖子
+INSERT INTO posts (title, content, image_url, user_id, category_id, is_top, is_elite, view_count, keywords) VALUES
+    ('Java 21 虚拟线程实战指南', '虚拟线程是Java 21中最重磅的特性，它让高并发编程变得前所未有的简单。本文将带你从入门到实战，全面掌握虚拟线程的使用技巧和最佳实践。', 'https://picsum.photos/seed/java/400/260', 1, 1, 2, 1, 1560, 'Java,虚拟线程,并发编程'),
+    ('Spring Boot 3.2 新特性一览', 'Spring Boot 3.2带来了很多令人兴奋的新特性，包括对虚拟线程的自动配置支持、改进的AOT编译等，让我们一起来看看。', 'https://picsum.photos/seed/spring/400/260', 2, 1, 1, 1, 892, 'Spring Boot,Java,AOT'),
+    ('Python 数据分析入门路线', '数据分析和AI时代，Python是必备技能。本文分享一条从零到实战的数据分析学习路线，帮助新手快速入门。', 'https://picsum.photos/seed/python/400/260', 1, 1, 0, 1, 2340, 'Python,数据分析,AI'),
+    ('搬砖人的周末放松方式', '周末是程序员的充电时间，分享几个低成本高回报的放松方式，让你周一满血复活。', 'https://picsum.photos/seed/relax/400/260', 2, 2, 0, 0, 678, '生活,程序员,放松'),
+    ('新手如何挑选机械键盘', '从轴体到手感，从布局到预算，帮你选到最适合编程的机械键盘。', 'https://picsum.photos/seed/keyboard/400/260', 1, 2, 0, 0, 423, '键盘,外设,编程'),
+    ('2026年应届生求职经验分享', '刚拿到字节offer，分享一下我的面试准备过程、简历撰写技巧和薪资谈判心得。', 'https://picsum.photos/seed/job/400/260', 2, 3, 0, 1, 3200, '求职,面试,应届生'),
+    ('前端React开发兼职机会', '远程办公，时薪优厚，需要熟悉React和TypeScript，欢迎有意向的朋友联系。', 'https://picsum.photos/seed/react/400/260', 1, 3, 0, 0, 1567, 'React,前端,兼职'),
+    ('高价悬赏：小程序UI设计', '需要一个电商小程序的全套UI设计稿，要求有现代感、简洁大气，预算3000积分。', 'https://picsum.photos/seed/ui/400/260', 2, 4, 0, 0, 534, 'UI设计,小程序,设计');
+
 -- ============================================
 -- 4. 回复表 (组长负责)
 -- ============================================
@@ -195,3 +206,118 @@ SET @sql = IF(@col_exists = 0,
 PREPARE stmt FROM @sql;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
+
+-- ============================================
+-- 为已有测试帖子补充关键词（仅对keywords为空的帖子）
+-- ============================================
+UPDATE posts SET keywords = 'Java,虚拟线程,并发编程' WHERE title = 'Java 21 虚拟线程实战指南' AND (keywords IS NULL OR keywords = '');
+UPDATE posts SET keywords = 'Spring Boot,Java,AOT' WHERE title = 'Spring Boot 3.2 新特性一览' AND (keywords IS NULL OR keywords = '');
+UPDATE posts SET keywords = 'Python,数据分析,AI' WHERE title = 'Python 数据分析入门路线' AND (keywords IS NULL OR keywords = '');
+UPDATE posts SET keywords = '生活,程序员,放松' WHERE title = '搬砖人的周末放松方式' AND (keywords IS NULL OR keywords = '');
+UPDATE posts SET keywords = '键盘,外设,编程' WHERE title = '新手如何挑选机械键盘' AND (keywords IS NULL OR keywords = '');
+UPDATE posts SET keywords = '求职,面试,应届生' WHERE title = '2026年应届生求职经验分享' AND (keywords IS NULL OR keywords = '');
+UPDATE posts SET keywords = 'React,前端,兼职' WHERE title = '前端React开发兼职机会' AND (keywords IS NULL OR keywords = '');
+UPDATE posts SET keywords = 'UI设计,小程序,设计' WHERE title = '高价悬赏：小程序UI设计' AND (keywords IS NULL OR keywords = '');
+
+-- ============================================
+-- 已有数据库迁移补丁（已存在则跳过）
+-- 新部署可忽略以下内容
+-- ============================================
+SET @dbname = DATABASE();
+
+-- posts.is_deleted
+SET @col_exists = (SELECT COUNT(*) FROM information_schema.COLUMNS
+                   WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = 'posts' AND COLUMN_NAME = 'is_deleted');
+SET @sql = IF(@col_exists = 0,
+    'ALTER TABLE posts ADD COLUMN is_deleted TINYINT DEFAULT 0 COMMENT ''0=正常 1=已删除''',
+    'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- replies.is_deleted
+SET @col_exists = (SELECT COUNT(*) FROM information_schema.COLUMNS
+                   WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = 'replies' AND COLUMN_NAME = 'is_deleted');
+SET @sql = IF(@col_exists = 0,
+    'ALTER TABLE replies ADD COLUMN is_deleted TINYINT DEFAULT 0 COMMENT ''0=正常 1=已删除''',
+    'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- demands.is_deleted
+SET @col_exists = (SELECT COUNT(*) FROM information_schema.COLUMNS
+                   WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = 'demands' AND COLUMN_NAME = 'is_deleted');
+SET @sql = IF(@col_exists = 0,
+    'ALTER TABLE demands ADD COLUMN is_deleted TINYINT DEFAULT 0 COMMENT ''0=正常 1=已删除''',
+    'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- demand_replies.is_deleted
+SET @col_exists = (SELECT COUNT(*) FROM information_schema.COLUMNS
+                   WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = 'demand_replies' AND COLUMN_NAME = 'is_deleted');
+SET @sql = IF(@col_exists = 0,
+    'ALTER TABLE demand_replies ADD COLUMN is_deleted TINYINT DEFAULT 0 COMMENT ''0=正常 1=已删除''',
+    'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- ============================================
+-- 为软删除字段创建索引
+-- ============================================
+SET @idx_exists = (SELECT COUNT(*) FROM information_schema.STATISTICS
+                   WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = 'posts' AND INDEX_NAME = 'idx_deleted');
+SET @sql = IF(@idx_exists = 0,
+    'CREATE INDEX idx_deleted ON posts(is_deleted)',
+    'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @idx_exists = (SELECT COUNT(*) FROM information_schema.STATISTICS
+                   WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = 'replies' AND INDEX_NAME = 'idx_deleted');
+SET @sql = IF(@idx_exists = 0,
+    'CREATE INDEX idx_deleted ON replies(is_deleted)',
+    'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @idx_exists = (SELECT COUNT(*) FROM information_schema.STATISTICS
+                   WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = 'demands' AND INDEX_NAME = 'idx_deleted');
+SET @sql = IF(@idx_exists = 0,
+    'CREATE INDEX idx_deleted ON demands(is_deleted)',
+    'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @idx_exists = (SELECT COUNT(*) FROM information_schema.STATISTICS
+                   WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = 'demand_replies' AND INDEX_NAME = 'idx_deleted');
+SET @sql = IF(@idx_exists = 0,
+    'CREATE INDEX idx_deleted ON demand_replies(is_deleted)',
+    'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- ============================================
+-- 11. 举报记录表 (组员A负责)
+-- ============================================
+CREATE TABLE IF NOT EXISTS reports (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    reporter_id INT NOT NULL COMMENT '举报人ID',
+    target_type ENUM('post', 'reply', 'demand', 'demand_reply') NOT NULL COMMENT '举报类型',
+    target_id INT NOT NULL COMMENT '被举报对象ID',
+    reason VARCHAR(20) NOT NULL COMMENT '举报原因代码：spam, abuse, illegal, porn, other',
+    status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending' COMMENT '处理状态',
+    handler_id INT DEFAULT NULL COMMENT '处理人ID（管理员）',
+    handle_note VARCHAR(200) DEFAULT NULL COMMENT '处理备注',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (reporter_id) REFERENCES users(id),
+    FOREIGN KEY (handler_id) REFERENCES users(id),
+    INDEX idx_status (status),
+    INDEX idx_target (target_type, target_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='举报记录表';
+
+-- ============================================
+-- 12. 站内通知表 (组员A负责)
+-- ============================================
+CREATE TABLE IF NOT EXISTS notifications (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL COMMENT '接收人ID',
+    type VARCHAR(20) NOT NULL COMMENT '类型：report_result, content_deleted',
+    content VARCHAR(500) NOT NULL COMMENT '通知内容',
+    is_read TINYINT DEFAULT 0 COMMENT '0未读 1已读',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    INDEX idx_user_read (user_id, is_read)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='站内通知表';

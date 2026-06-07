@@ -136,7 +136,7 @@ public class AdminPostServlet extends HttpServlet {
         }
 
         int currentTop = 0;
-        String selectSql = "SELECT is_top FROM posts WHERE id = ?";
+        String selectSql = "SELECT is_top FROM posts WHERE id = ? AND is_deleted = 0";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(selectSql)) {
             ps.setInt(1, postId);
@@ -181,7 +181,7 @@ public class AdminPostServlet extends HttpServlet {
         }
 
         int currentElite = 0;
-        String selectSql = "SELECT is_elite FROM posts WHERE id = ?";
+        String selectSql = "SELECT is_elite FROM posts WHERE id = ? AND is_deleted = 0";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(selectSql)) {
             ps.setInt(1, postId);
@@ -216,7 +216,7 @@ public class AdminPostServlet extends HttpServlet {
 
     /** 统计帖子数（支持搜索） */
     private int countPosts(String keyword, String author, Integer categoryId) {
-        StringBuilder sql = new StringBuilder("SELECT COUNT(*) FROM posts p JOIN users u ON p.user_id = u.id JOIN categories c ON p.category_id = c.id WHERE 1=1");
+        StringBuilder sql = new StringBuilder("SELECT COUNT(*) FROM posts p JOIN users u ON p.user_id = u.id JOIN categories c ON p.category_id = c.id WHERE 1=1 AND p.is_deleted = 0");
         if (keyword != null) {
             sql.append(" AND (p.title LIKE ? OR p.content LIKE ?)");
         }
@@ -259,7 +259,7 @@ public class AdminPostServlet extends HttpServlet {
             "u.username AS author_name, c.name AS category_name " +
             "FROM posts p " +
             "JOIN users u ON p.user_id = u.id " +
-            "JOIN categories c ON p.category_id = c.id WHERE 1=1"
+            "JOIN categories c ON p.category_id = c.id WHERE 1=1 AND p.is_deleted = 0"
         );
         if (keyword != null) {
             sql.append(" AND (p.title LIKE ? OR p.content LIKE ?)");

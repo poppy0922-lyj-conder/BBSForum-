@@ -96,7 +96,7 @@ public class PostServlet extends HttpServlet {
         }
 
         // 1. 浏览量+1
-        String updateSql = "UPDATE posts SET view_count = view_count + 1 WHERE id = ?";
+        String updateSql = "UPDATE posts SET view_count = view_count + 1 WHERE id = ? AND is_deleted = 0";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(updateSql)) {
             ps.setInt(1, postId);
@@ -112,7 +112,7 @@ public class PostServlet extends HttpServlet {
                          "FROM posts p " +
                          "JOIN users u ON p.user_id = u.id " +
                          "JOIN categories c ON p.category_id = c.id " +
-                         "WHERE p.id = ?";
+                         "WHERE p.id = ? AND p.is_deleted = 0";
         Map<String, Object> post = null;
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(postSql)) {
@@ -178,7 +178,7 @@ public class PostServlet extends HttpServlet {
         List<Map<String, Object>> replyList = new ArrayList<>();
         String replySql = "SELECT r.id, r.content, r.created_at, u.username AS author_name, u.id AS user_id " +
                           "FROM replies r JOIN users u ON r.user_id = u.id " +
-                          "WHERE r.post_id = ? ORDER BY r.created_at ASC";
+                          "WHERE r.post_id = ? AND r.is_deleted = 0 ORDER BY r.created_at ASC";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(replySql)) {
             ps.setInt(1, postId);
@@ -212,7 +212,7 @@ public class PostServlet extends HttpServlet {
         List<Map<String, Object>> list = new ArrayList<>();
         StringBuilder sql = new StringBuilder(
             "SELECT p.id, p.title, p.view_count, p.created_at, u.username AS author_name " +
-            "FROM posts p JOIN users u ON p.user_id = u.id WHERE p.id != ? AND (");
+            "FROM posts p JOIN users u ON p.user_id = u.id WHERE p.id != ? AND p.is_deleted = 0 AND (");
 
         if (keywords != null && !keywords.trim().isEmpty()) {
             String[] kws = keywords.split("[,，]");
@@ -382,7 +382,7 @@ public class PostServlet extends HttpServlet {
             return;
         }
 
-        String sql = "SELECT p.id, p.title, p.content, p.image_url, p.user_id, p.category_id FROM posts p WHERE p.id = ?";
+        String sql = "SELECT p.id, p.title, p.content, p.image_url, p.user_id, p.category_id FROM posts p WHERE p.id = ? AND p.is_deleted = 0";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, postId);
@@ -457,7 +457,7 @@ public class PostServlet extends HttpServlet {
         }
 
         // 先检查权限
-        String checkSql = "SELECT user_id FROM posts WHERE id = ?";
+        String checkSql = "SELECT user_id FROM posts WHERE id = ? AND is_deleted = 0";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(checkSql)) {
             ps.setInt(1, postId);
@@ -511,7 +511,7 @@ public class PostServlet extends HttpServlet {
         }
 
         // 检查权限
-        String checkSql = "SELECT user_id FROM posts WHERE id = ?";
+        String checkSql = "SELECT user_id FROM posts WHERE id = ? AND is_deleted = 0";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(checkSql)) {
             ps.setInt(1, postId);
@@ -532,7 +532,7 @@ public class PostServlet extends HttpServlet {
         }
 
         try (Connection conn = DBUtil.getConnection();
-             PreparedStatement ps = conn.prepareStatement("DELETE FROM posts WHERE id = ?")) {
+             PreparedStatement ps = conn.prepareStatement("UPDATE posts SET is_deleted = 1 WHERE id = ?")) {
             ps.setInt(1, postId);
             ps.executeUpdate();
             LOG.info("帖子删除成功, postId=" + postId + ", 操作者=" + user.get("username"));
@@ -586,12 +586,13 @@ public class PostServlet extends HttpServlet {
 
     /** 统计搜索匹配的帖子总数 */
     private int countSearchPosts(String keyword) {
-        String sql = "SELECT COUNT(*) FROM posts WHERE title LIKE ? OR content LIKE ?";
+        String sql = "SELECT COUNT(*) FROM posts WHERE (title LIKE ? OR content LIKE ? OR keywords LIKE ?) AND is_deleted = 0";
         String like = "%" + keyword + "%";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, like);
             ps.setString(2, like);
+            ps.setString(3, like);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     return rs.getInt(1);
@@ -614,15 +615,16 @@ public class PostServlet extends HttpServlet {
                      "FROM posts p " +
                      "JOIN users u ON p.user_id = u.id " +
                      "JOIN categories c ON p.category_id = c.id " +
-                     "WHERE p.title LIKE ? OR p.content LIKE ? " +
+                     "WHERE (p.title LIKE ? OR p.content LIKE ? OR p.keywords LIKE ?) AND p.is_deleted = 0 " +
                      "ORDER BY p.is_top DESC, p.is_elite DESC, p.created_at DESC " +
                      "LIMIT ? OFFSET ?";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, like);
             ps.setString(2, like);
-            ps.setInt(3, PAGE_SIZE);
-            ps.setInt(4, offset);
+            ps.setString(3, like);
+            ps.setInt(4, PAGE_SIZE);
+            ps.setInt(5, offset);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     list.add(PostMapper.mapPostRow(rs));
@@ -654,7 +656,7 @@ public class PostServlet extends HttpServlet {
         }
 
         // 使用同一个连接完成查询 + 更新，避免重复连接
-        String sql = "SELECT title, content FROM posts WHERE id = ?";
+        String sql = "SELECT title, content FROM posts WHERE id = ? AND is_deleted = 0";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, postId);

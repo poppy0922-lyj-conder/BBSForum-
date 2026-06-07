@@ -63,7 +63,7 @@ public class HomeServlet extends HttpServlet {
 
     /** 统计帖子总数 */
     private int countPosts() {
-        String sql = "SELECT COUNT(*) FROM posts";
+        String sql = "SELECT COUNT(*) FROM posts WHERE is_deleted = 0";
         try (Connection conn = DBUtil.getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
@@ -112,6 +112,7 @@ public class HomeServlet extends HttpServlet {
                      "FROM posts p " +
                      "JOIN users u ON p.user_id = u.id " +
                      "JOIN categories c ON p.category_id = c.id " +
+                     "WHERE p.is_deleted = 0 " +
                      "ORDER BY p.is_top DESC, p.is_elite DESC, p.created_at DESC " +
                      "LIMIT ? OFFSET ?";
         try (Connection conn = DBUtil.getConnection();

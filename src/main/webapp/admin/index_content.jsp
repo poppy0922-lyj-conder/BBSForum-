@@ -4,7 +4,7 @@
 <%
 try (java.sql.Connection conn = DBUtil.getConnection();
      java.sql.Statement stmt = conn.createStatement()) {
-    try (java.sql.ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM posts")) {
+    try (java.sql.ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM posts WHERE is_deleted = 0")) {
         if (rs.next()) request.setAttribute("postCount", rs.getInt(1));
     }
     try (java.sql.ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM users")) {
