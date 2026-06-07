@@ -23,7 +23,12 @@
 </c:if>
 <c:if test="${not empty param.error}">
     <div class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
-        <i class="fa fa-exclamation-circle mr-1"></i> ${param.error}
+        <i class="fa fa-exclamation-circle mr-1"></i>
+        <c:choose>
+            <c:when test="${param.error == 'edit_failed'}">编辑失败，请稍后重试</c:when>
+            <c:when test="${param.error == 'accept_failed'}">采纳回复失败，请稍后重试</c:when>
+            <c:otherwise>操作失败：${param.error}</c:otherwise>
+        </c:choose>
     </div>
 </c:if>
 
