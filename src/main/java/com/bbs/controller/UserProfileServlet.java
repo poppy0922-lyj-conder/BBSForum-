@@ -66,11 +66,15 @@ public class UserProfileServlet extends HttpServlet {
             request.setAttribute("pageTitle", "个人中心");
             request.getRequestDispatcher("/user/profile.jsp").forward(request, response);
         } else if ("/user/profile/edit".equals(path)) {
+            // 加载最近积分记录用于边栏展示
+            request.setAttribute("scoreLogs", loadScoreLogs(userId, 5));
             request.setAttribute("pageTitle", "编辑资料");
             request.getRequestDispatcher("/user/profile_edit.jsp").forward(request, response);
         } else if ("/user/profile/follows".equals(path)) {
             List<Map<String, Object>> followList = loadFollows(userId);
             request.setAttribute("followList", followList);
+            // 加载最近积分记录用于边栏展示
+            request.setAttribute("scoreLogs", loadScoreLogs(userId, 5));
             request.setAttribute("pageTitle", "我的关注");
             request.getRequestDispatcher("/user/follows.jsp").forward(request, response);
         } else if ("/user/score-log".equals(path)) {
