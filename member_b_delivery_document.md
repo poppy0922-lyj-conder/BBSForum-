@@ -52,9 +52,8 @@
 - 登录后可查看个人资料信息
 - 显示用户名、联系方式、工作性质、工作地点、注册时间
 - 左侧边栏导航：个人中心标题、二级菜单（基本信息/发布帖子/我的悬赏/我的关注/我的点赞/我的收藏/积分记录）、底部辅助功能（编辑资料）、最近积分记录模块
-- 右侧显示基本信息卡片和当前积分模块（蓝色钻石图标+大号积分数字+签到按钮）
-- 基本信息页面底部有「退出登录」按钮
-- 顶部导航栏右上角显示「首页」按钮（返回首页）
+- 右侧显示基本信息卡片、当前积分模块（蓝色钻石图标+大号积分数字+签到按钮）、退出登录按钮
+- 顶部导航栏右上角显示「首页」按钮（带 home 图标，返回首页）
 - 每次访问从数据库刷新数据保证信息最新
 - 资料更新后显示"资料已更新"提示
 - 签到按钮通过Fetch AJAX调用签到接口，根据返回结果弹窗提示
@@ -147,7 +146,7 @@
 - `src/main/webapp/user/score_log.jsp` - 积分记录页面外壳
 - `src/main/webapp/user/score_log_content.jsp` - 积分记录内容页面
 
-### 7. 每日签到 (Daily Checkin)
+### 11. 每日签到 (Daily Checkin)
 
 **功能描述**：
 - AJAX-GET 接口 `/user/checkin`
@@ -162,7 +161,7 @@
 - `src/main/java/com/bbs/controller/UserServlet.java` - 签到接口
 - `src/main/webapp/user/profile_content.jsp` - 签到按钮与AJAX调用
 
-### 8. 登录积分奖励 (Daily Login Bonus)
+### 12. 登录积分奖励 (Daily Login Bonus)
 
 **功能描述**：
 - 每日首次登录自动奖励 +2 积分
@@ -173,7 +172,7 @@
 **相关文件**：
 - `src/main/java/com/bbs/controller/UserServlet.java` - awardDailyLoginScore方法
 
-### 9. Session鉴权拦截 (AuthFilter)
+### 13. Session鉴权拦截 (AuthFilter)
 
 **功能描述**：
 - 拦截未登录用户访问个人中心（`/user/profile`、`/user/profile/*`、`/user/score-log`），重定向到登录页
@@ -441,7 +440,13 @@ db.password=
 
 ## 本次修改记录
 
-### 1. 个人中心4个菜单功能实现
+### 1. 首页侧边栏板块重复修复
+- **问题**：首页侧边栏板块重复显示，第一个有内容，后续重复的为空
+- **根因**：`HomeServlet.loadCategoriesIfNeeded()` SQL查询可能因 sort_order 重复导致板块重复
+- **修复**：SQL 增加 `DISTINCT` 去重，并按 `sort_order, id` 排序
+- **修改文件**：`src/main/java/com/bbs/controller/HomeServlet.java`
+
+### 2. 个人中心4个菜单功能实现
 - **发布帖子** (`/user/profile/posts`)：从 posts 表按 user_id 查询当前用户发布的所有帖子
 - **我的悬赏** (`/user/profile/demands`)：从 demands 表按 user_id 查询当前用户发布的所有悬赏
 - **我的点赞** (`/user/profile/likes`)：联表查询 post_likes + posts + users + categories
@@ -456,7 +461,7 @@ db.password=
   - `src/main/webapp/user/my_favorites.jsp` + `my_favorites_content.jsp`
 - **删除文件**：占位页面 `profile_placeholder.jsp` + `profile_placeholder_content.jsp`
 
-### 2. 个人中心UI优化
+### 3. 个人中心UI优化
 - 边栏底部仅保留「编辑资料」按钮
 - 顶部导航栏右上角「退出」改为「首页」（带 home 图标，返回首页）
 - 基本信息页面底部增加「退出登录」按钮（红色样式，带 sign-out 图标）
