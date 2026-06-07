@@ -2,15 +2,11 @@
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 
-<div class="mb-6 flex flex-wrap items-center justify-between gap-3">
+<div class="mb-6">
     <h2 class="text-xl font-bold text-gray-800 flex items-center gap-2">
         <i class="fa fa-th-list text-blue-500"></i> 板块管理
         <span class="text-sm font-normal text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">${fn:length(categoryList)} 个板块</span>
     </h2>
-    <a href="${pageContext.request.contextPath}/admin"
-       class="inline-flex items-center gap-1 px-3 py-1.5 text-sm text-gray-600 bg-gray-100 border border-gray-200 rounded-lg hover:bg-gray-200 transition no-underline">
-        <i class="fa fa-arrow-left"></i> 返回后台
-    </a>
 </div>
 
 <!-- 添加板块 -->

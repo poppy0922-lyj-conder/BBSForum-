@@ -2,6 +2,7 @@ package com.bbs.util;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -50,5 +51,20 @@ public class PostMapper {
         cat.put("name", rs.getString("name"));
         cat.put("description", rs.getString("description"));
         return cat;
+    }
+
+    /** 映射用户行（管理后台用户列表） */
+    public static Map<String, Object> mapUserRow(ResultSet rs) throws SQLException {
+        Map<String, Object> user = new HashMap<>();
+        user.put("id", rs.getInt("id"));
+        user.put("username", rs.getString("username"));
+        user.put("phone", rs.getString("phone") == null ? "" : rs.getString("phone"));
+        user.put("jobType", rs.getString("job_type") == null ? "" : rs.getString("job_type"));
+        user.put("jobLocation", rs.getString("job_location") == null ? "" : rs.getString("job_location"));
+        user.put("role", rs.getString("role"));
+        user.put("score", rs.getInt("score"));
+        Timestamp createdAt = rs.getTimestamp("created_at");
+        user.put("createdAt", createdAt == null ? "" : createdAt.toString());
+        return user;
     }
 }
