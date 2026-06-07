@@ -4,4 +4,5 @@
 <c:set var="pageTitle" value="需求悬赏" scope="request" />
 <c:set var="contentPage" value="/post/demand_content.jsp" scope="request" />
 <c:set var="showSidebar" value="true" scope="request" />
+<c:set var="demandActive" value="true" scope="request" />
 <jsp:include page="/layouts/main.jsp" />

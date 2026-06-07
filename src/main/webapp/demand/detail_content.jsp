@@ -69,7 +69,7 @@
         </div>
 
         <div class="flex items-center gap-2 pt-4 border-t border-gray-100 flex-wrap">
-            <button onclick="history.back()" class="inline-flex items-center gap-1 px-3 py-1.5 text-sm text-gray-500 bg-gray-100 border border-gray-200 rounded hover:bg-gray-200 transition cursor-pointer">
+            <button onclick="location.href=document.referrer||'${pageContext.request.contextPath}/demand'" class="inline-flex items-center gap-1 px-3 py-1.5 text-sm text-gray-500 bg-gray-100 border border-gray-200 rounded hover:bg-gray-200 transition cursor-pointer">
                 <i class="fa fa-arrow-left"></i> 返回
             </button>
             <c:if test="${sessionScope.user.id == demand.userId && demand.status == 'open'}">
