@@ -391,7 +391,6 @@ async function adminAction(url, postId, actionText, actionText2, actionText3) {
             console.error('请求失败:', error);
             alert('操作失败，请重试: ' + error.message);
         });
-    }
 }
 
 function confirmDeletePost(event, url) {

@@ -190,7 +190,7 @@ public class DemandServlet extends HttpServlet {
                 try { conn.rollback(); } catch (SQLException ex) { ex.printStackTrace(); }
             }
             LOG.log(Level.SEVERE, "发布需求失败: " + e.getMessage(), e);
-            response.sendRedirect(request.getContextPath() + "/demand/create?error=发布失败");
+            response.sendRedirect(request.getContextPath() + "/demand/create?error=publish_failed");
             return;
         } finally {
             if (conn != null) {
@@ -353,7 +353,7 @@ public class DemandServlet extends HttpServlet {
                 try { conn.rollback(); } catch (SQLException ex) { ex.printStackTrace(); }
             }
             LOG.log(Level.SEVERE, "采纳回复失败: " + e.getMessage(), e);
-            response.sendRedirect(request.getContextPath() + "/demand/detail?id=" + demandId + "&error=" + e.getMessage());
+            response.sendRedirect(request.getContextPath() + "/demand/detail?id=" + demandId + "&error=accept_failed");
             return;
         } finally {
             if (conn != null) {
@@ -454,13 +454,13 @@ public class DemandServlet extends HttpServlet {
             ps.setInt(4, userId);
             int affected = ps.executeUpdate();
             if (affected == 0) {
-                response.sendRedirect(request.getContextPath() + "/demand/detail?id=" + demandId + "&error=编辑失败");
+                response.sendRedirect(request.getContextPath() + "/demand/detail?id=" + demandId + "&error=edit_failed");
                 return;
             }
             LOG.info("需求编辑成功: demandId=" + demandId);
         } catch (SQLException e) {
             LOG.log(Level.SEVERE, "编辑需求失败", e);
-            response.sendRedirect(request.getContextPath() + "/demand/detail?id=" + demandId + "&error=编辑失败");
+            response.sendRedirect(request.getContextPath() + "/demand/detail?id=" + demandId + "&error=edit_failed");
             return;
         }
 
