@@ -23,6 +23,8 @@ public class PostMapper {
         post.put("isTop", rs.getInt("is_top"));
         post.put("isElite", rs.getInt("is_elite"));
         post.put("viewCount", rs.getInt("view_count"));
+        post.put("likeCount", rs.getInt("like_count"));
+        post.put("favoriteCount", rs.getInt("favorite_count"));
         post.put("createdAt", rs.getTimestamp("created_at").toString());
         post.put("authorName", rs.getString("author_name"));
         post.put("categoryName", rs.getString("category_name"));

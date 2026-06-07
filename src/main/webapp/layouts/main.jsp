@@ -74,7 +74,10 @@
                     <span>
                         <c:choose>
                             <c:when test="${param.error == '1'}">操作失败，请重试</c:when>
-                            <c:otherwise>出错了：${param.error}</c:otherwise>
+                            <c:when test="${param.error == 'jifenbuzu'}">积分不足，无法发布悬赏</c:when>
+                            <c:when test="${param.error == 'scorezero'}">悬赏积分必须大于 0</c:when>
+                            <c:when test="${param.error == 'publish_failed'}">发布失败，请稍后重试</c:when>
+                            <c:otherwise>操作失败：${param.error}</c:otherwise>
                         </c:choose>
                     </span>
                     <button onclick="this.parentElement.remove()" class="ml-auto text-red-500 hover:text-red-700 cursor-pointer">&times;</button>
@@ -94,22 +97,22 @@
             <div class="px-4 pt-4 pb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">论坛板块</div>
             <ul>
                 <li>
-                    <div class="flex items-start gap-2 px-4 py-3 no-underline bg-blue-50 text-blue-500 font-medium">
+                    <a href="${pageContext.request.contextPath}/" class="flex items-start gap-2 px-4 py-3 no-underline ${empty currentCategory and empty demandActive ? 'bg-blue-50 text-blue-500 font-medium' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-500'}">
                         <i class="fa fa-home mt-0.5"></i>
                         <div>
                             <div class="text-sm">全部帖子</div>
-                            <div class="text-[11px] text-blue-400 font-normal mt-0.5">浏览所有板块的最新帖子</div>
+                            <div class="text-[11px] font-normal mt-0.5 ${empty currentCategory and empty demandActive ? 'text-blue-400' : 'text-gray-400'}">浏览所有板块的最新帖子</div>
                         </div>
-                    </div>
+                    </a>
                 </li>
                 <c:forEach var="cat" items="${applicationScope.categoryList}">
                     <c:if test="${cat.name != '需求悬赏'}">
                     <li>
-                        <a href="${pageContext.request.contextPath}/category?id=${cat.id}" class="flex items-start gap-2 px-4 py-3 no-underline text-gray-700 hover:bg-blue-50 hover:text-blue-500">
+                        <a href="${pageContext.request.contextPath}/category?id=${cat.id}" class="flex items-start gap-2 px-4 py-3 no-underline ${not empty currentCategory && currentCategory.id == cat.id ? 'bg-blue-50 text-blue-500 font-medium' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-500'}">
                             <i class="fa fa-folder-o mt-0.5"></i>
                             <div>
                                 <div class="text-sm">${cat.name}</div>
-                                <div class="text-[11px] text-gray-400 font-normal mt-0.5">${empty cat.description ? '浏览该板块帖子' : cat.description}</div>
+                                <div class="text-[11px] font-normal mt-0.5 ${not empty currentCategory && currentCategory.id == cat.id ? 'text-blue-400' : 'text-gray-400'}">${empty cat.description ? '浏览该板块帖子' : cat.description}</div>
                             </div>
                         </a>
                     </li>
