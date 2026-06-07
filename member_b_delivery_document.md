@@ -50,13 +50,14 @@
 
 **功能描述**：
 - 登录后可查看个人资料信息
-- 显示用户名、联系方式、工作性质、工作地点、注册时间
+- 显示用户头像（已上传显示图片，未上传显示首字母默认头像）、用户名、联系方式、工作性质、工作地点、注册时间
 - 左侧边栏导航：个人中心标题、二级菜单（基本信息/发布帖子/我的悬赏/我的关注/我的点赞/我的收藏/积分记录）、底部辅助功能（编辑资料）、最近积分记录模块
-- 右侧显示基本信息卡片、当前积分模块（蓝色钻石图标+大号积分数字+签到按钮）、退出登录按钮
+- 右侧显示基本信息卡片（含头像）、当前积分模块（蓝色钻石图标+大号积分数字+签到按钮）、退出登录按钮
 - 每次访问从数据库刷新数据保证信息最新
 - 资料更新后显示"资料已更新"提示
 - 签到按钮通过Fetch AJAX调用签到接口，根据返回结果弹窗提示
 - 公共边栏组件 `profile_sidebar.jsp` 统一所有个人中心页面的左侧导航
+- 侧边栏「最近积分记录」模块：≤5条全部展示，＞5条仅展示最新5条，保留「查看全部」跳转
 
 **相关文件**：
 - `src/main/java/com/bbs/controller/UserProfileServlet.java` - 后端控制器
@@ -68,14 +69,18 @@
 
 **功能描述**：
 - 用户可以修改联系方式、工作性质、工作地点
+- 支持头像上传：选择本地图片、实时预览、文件格式/大小校验
 - 支持可选修改密码（非空时才更新，长度至少6位）
 - 密码修改同样使用BCrypt加密
 - 所有用户输入做HTML转义，防范XSS攻击
-- 使用数据库事务确保资料更新和密码更新的原子性
+- 使用数据库事务确保资料更新、头像路径保存和密码更新的原子性
 - 前端HTML5校验 + 后端参数双重校验
+- 头像存储路径：`{webapp}/uploads/avatars/user_{id}_{uuid}.ext`
+- 支持格式：JPG、PNG、GIF、WebP，最大5MB
+- 上传新头像时自动删除旧头像文件
 
 **相关文件**：
-- `src/main/java/com/bbs/controller/UserProfileServlet.java` - 后端控制器
+- `src/main/java/com/bbs/controller/UserProfileServlet.java` - 后端控制器（含头像上传处理）
 - `src/main/webapp/user/profile_edit.jsp` - 编辑页面外壳
 - `src/main/webapp/user/profile_edit_content.jsp` - 编辑内容页面
 
@@ -439,13 +444,15 @@ db.password=
 
 ## 本次修改记录
 
-### 1. 首页侧边栏板块重复修复
+### 迭代一：首页侧边栏修复 + 个人中心菜单功能完善
+
+#### 1. 首页侧边栏板块重复修复
 - **问题**：首页侧边栏板块重复显示，第一个有内容，后续重复的为空
 - **根因**：`HomeServlet.loadCategoriesIfNeeded()` SQL查询可能因 sort_order 重复导致板块重复
 - **修复**：SQL 增加 `DISTINCT` 去重，并按 `sort_order, id` 排序
 - **修改文件**：`src/main/java/com/bbs/controller/HomeServlet.java`
 
-### 2. 个人中心4个菜单功能实现
+#### 2. 个人中心4个菜单功能实现
 - **发布帖子** (`/user/profile/posts`)：从 posts 表按 user_id 查询当前用户发布的所有帖子
 - **我的悬赏** (`/user/profile/demands`)：从 demands 表按 user_id 查询当前用户发布的所有悬赏
 - **我的点赞** (`/user/profile/likes`)：联表查询 post_likes + posts + users + categories
@@ -460,19 +467,117 @@ db.password=
   - `src/main/webapp/user/my_favorites.jsp` + `my_favorites_content.jsp`
 - **删除文件**：占位页面 `profile_placeholder.jsp` + `profile_placeholder_content.jsp`
 
-### 3. 个人中心UI优化
-- 顶部导航栏「退出」改为「首页」按钮，方便从个人中心返回
-- 侧边栏底部仅保留「编辑资料」，删除「返回首页」和「退出登录」（避免冗余）
+#### 3. 个人中心UI优化
+- 顶部导航栏「退出」改为「首页」按钮
+- 侧边栏底部仅保留「编辑资料」，删除「返回首页」和「退出登录」
 - 基本信息页面底部新增「退出登录」按钮（红色边框样式）
 - 所有个人中心页面统一使用 `profile_sidebar.jsp` 公共边栏组件
 - 边栏高亮状态通过 `activeMenu` 变量控制
 
+### 迭代二：侧边栏积分记录优化 + 头像功能
+
+#### 4. 侧边栏「最近积分记录」统一优化
+- **优化内容**：所有个人中心子页面（基本信息、资料编辑、积分记录、发布帖子、我的悬赏、我的点赞、我的收藏、我的关注）左侧边栏统一展示「最近积分记录」
+- **数据规则**：积分记录总数 ≤5 条全部展示；＞5 条仅展示最新5条
+- **样式统一**：所有页面使用 `profile_sidebar.jsp` 公共组件，样式完全一致
+- **修复**：`UserProfileServlet` 的 `/user/profile/edit` 和 `/user/profile/follows` 路由补充 `scoreLogs` 加载
+- **修改文件**：`src/main/java/com/bbs/controller/UserProfileServlet.java`
+
+#### 5. 积分规则统一校验
+- **每日首次登录**：`awardDailyLoginScore()` 固定 +2 分，检查当日是否已有记录，防重复奖励
+- **每日签到**：`handleCheckin()` 连续签到 5~15 分递增，`Math.min(5 + (consecutiveDays - 1), 15)` 封顶15分，断签重置为5分
+- **校验结果**：代码逻辑正确，数值统一，无需调整
+
+#### 6. 用户头像功能
+- **数据库**：users 表新增 `avatar VARCHAR(255)` 字段，用于存放头像访问路径
+- **init.sql**：新增 avatar 字段定义 + 迁移补丁（已存在则跳过）
+- **后端上传处理**（`UserProfileServlet`）：
+  - 新增 `@MultipartConfig` 注解，支持文件上传（最大5MB）
+  - `handleAvatarUpload()` 方法：格式校验（JPG/PNG/GIF/WebP）、大小校验、UUID重命名、自动删除旧头像
+  - `AvatarUploadResult` 内部类：封装上传结果
+  - `doPost()` 中集成头像上传与资料保存的事务
+- **前端展示**（`profile_content.jsp`）：
+  - 基本信息卡片顶部新增头像区域
+  - 已上传头像：显示圆形图片
+  - 未上传头像：显示首字母默认头像（蓝色背景）
+- **前端上传**（`profile_edit_content.jsp`）：
+  - 新增文件选择组件，支持实时预览（FileReader）
+  - 表单 `enctype="multipart/form-data"`
+  - 提示支持格式和大小限制
+- **存储路径**：`{webapp}/uploads/avatars/user_{id}_{uuid}.ext`
+- **修改文件**：
+  - `src/main/java/com/bbs/controller/UserProfileServlet.java`
+  - `src/main/webapp/user/profile_content.jsp`
+  - `src/main/webapp/user/profile_edit_content.jsp`
+  - `database/init.sql`
+
+### 迭代三：紧急修复
+
+#### 7. avatar 字段缺失 SQL 报错修复
+- **问题**：项目启动报错 `Unknown column 'avatar' in 'field list'`，users 表缺少 avatar 字段
+- **根因**：init.sql 中的 avatar 字段定义和迁移补丁未在实际数据库中执行
+- **修复**：执行 `ALTER TABLE users ADD COLUMN avatar VARCHAR(255) DEFAULT '' COMMENT 'avatar' AFTER job_location;`
+- **验证**：`DESCRIBE users` 确认 avatar 字段已存在
+
+#### 8. 「我的」按钮跳转登录页修复
+- **问题**：已登录用户点击导航栏「我的」按钮，被重定向到登录页
+- **根因**：`UserServlet.handleLogin()` 中 Session Fixation 防护代码顺序错误——先获取 session 再调用 `changeSessionId()`，导致 user 对象被设置到旧 session 上，新 session 中没有 user
+- **修复前**：
+  ```java
+  HttpSession session = request.getSession();      // 获取旧 session
+  request.changeSessionId();                         // 创建新 session
+  session.setAttribute("user", user);               // 设置到旧 session！
+  ```
+- **修复后**：
+  ```java
+  request.changeSessionId();                         // 先更换 session ID
+  HttpSession session = request.getSession();       // 获取新 session
+  session.setAttribute("user", user);                // 设置到新 session
+  ```
+- **修改文件**：`src/main/java/com/bbs/controller/UserServlet.java`
+
+### 迭代四：页面样式优化（登录/注册页+头部头像）
+
+#### 9. 登录/注册页面样式精简
+- **优化内容**：登录页和注册页隐藏顶部搜索框、热度榜按钮
+- **实现方式**：登录/注册JSP外壳设置 `hideHeaderExtra=true`，`main.jsp` 中通过 `<c:if test="${empty hideHeaderExtra}">` 控制搜索框和热度榜的显示
+- **修改文件**：
+  - `src/main/webapp/user/login.jsp` — 新增 `hideHeaderExtra=true`
+  - `src/main/webapp/user/register.jsp` — 新增 `hideHeaderExtra=true`
+  - `src/main/webapp/layouts/main.jsp` — 搜索框和热度榜增加条件判断
+
+#### 10. 头部栏头像展示
+- **优化内容**：头部栏蓝色圆圈替换为用户头像
+- **展示逻辑**：
+  - 已登录且有头像：显示圆形头像图片（`<img>` 标签），点击跳转个人中心
+  - 已登录无头像：显示首字母蓝色圆圈（保持原样式），点击跳转个人中心
+  - 未登录：显示登录/注册按钮（不变）
+- **头像同步**：
+  - 登录时：`UserServlet.handleLogin()` SQL查询增加avatar字段，session中包含avatar
+  - 编辑资料后：`UserProfileServlet.doPost()` 保存后刷新session（`loadUserById` 包含avatar）
+- **修改文件**：
+  - `src/main/webapp/layouts/main.jsp` — 蓝色圆圈替换为头像展示逻辑
+  - `src/main/java/com/bbs/controller/UserServlet.java` — 登录SQL增加avatar字段+session写入
+
+#### 11. 积分记录页面侧边栏展示修复
+- **问题**：积分记录主页面侧边栏展示了分页数据（最多15条），违反"侧边栏仅展示最新5条"规则
+- **根因**：`handleScoreLog()` 将分页查询的 `scoreLogs`（最多15条）直接传递给侧边栏组件
+- **修复**：
+  - `handleScoreLog()` 新增 `sidebarScoreLogs = loadScoreLogs(userId, 5)` 独立加载侧边栏数据
+  - `score_log_content.jsp` 在 include 侧边栏前通过 `<c:set var="scoreLogs" value="${sidebarScoreLogs}">` 将5条数据传递给侧边栏
+  - 主内容区仍使用分页的 `scoreLogs` 展示完整记录
+- **修改文件**：
+  - `src/main/java/com/bbs/controller/UserProfileServlet.java`
+  - `src/main/webapp/user/score_log_content.jsp`
+
 ## 注意事项
 
 1. **密码安全**：新注册和改密均使用BCrypt加密（`org.mindrot:jbcrypt:0.4`）。`init.sql`中默认测试账号的密码为明文，首次登录时自动升级为BCrypt hash。
-2. **Session结构**：登录后session中存储的user为`Map<String, Object>`格式，包含id、username、role、phone、jobType、jobLocation、score、createdAt等字段。其他模块均依赖此结构，修改时务必保证兼容。
+2. **Session结构**：登录后session中存储的user为`Map<String, Object>`格式，包含id、username、role、phone、jobType、jobLocation、avatar、score、createdAt等字段。其他模块均依赖此结构，修改时务必保证兼容。
 3. **AuthFilter覆盖范围**：Filter保护`/user/profile*`、`/user/score-log`和`/admin/*`路径。发帖、回帖等功能的登录判断仍由各自Servlet自行处理。
 4. **编码**：通过`EncodingFilter`统一处理UTF-8编码，后端和JSP页面均使用UTF-8。
 5. **积分规则**：每日首次登录+2分，每日签到5~15分逐步递增（封顶15分），断签重置为5分。所有积分变动均写入score_logs流水表。
 6. **init.sql 修复**：已修复重复表定义和重复插入问题，使用 `INSERT IGNORE` 和 `CREATE TABLE IF NOT EXISTS` 确保重复执行无报错。
 7. **公共边栏组件**：`profile_sidebar.jsp` 统一了所有个人中心页面的左侧导航，通过设置 `activeMenu` request属性控制高亮。
+8. **头像功能**：users 表新增 avatar 字段，支持头像上传、预览、保存和回显。上传文件存储在 `{webapp}/uploads/avatars/` 目录下。
+9. **积分记录边栏**：所有个人中心页面侧边栏统一展示最近5条积分记录，通过 `loadScoreLogs(userId, 5)` 加载。

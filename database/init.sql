@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS users (
     phone       VARCHAR(20)  DEFAULT '' COMMENT '联系方式',
     job_type    VARCHAR(50)  DEFAULT '' COMMENT '工作性质',
     job_location VARCHAR(100) DEFAULT '' COMMENT '工作地点',
+    avatar      VARCHAR(255) DEFAULT '' COMMENT '头像图片路径',
     role        ENUM('user','admin') NOT NULL DEFAULT 'user' COMMENT '角色',
     score       INT NOT NULL DEFAULT 0 COMMENT '积分',
     created_at  DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '注册时间'
@@ -185,6 +186,8 @@ CREATE TABLE IF NOT EXISTS user_follows (
 -- 新部署可忽略以下内容
 -- ============================================
 SET @dbname = DATABASE();
+
+-- 迁移：score 字段
 SET @col_exists = (SELECT COUNT(*) FROM information_schema.COLUMNS
                    WHERE TABLE_SCHEMA = @dbname
                    AND TABLE_NAME = 'users'
@@ -195,3 +198,15 @@ SET @sql = IF(@col_exists = 0,
 PREPARE stmt FROM @sql;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
+
+-- 迁移：avatar 字段
+SET @col_avatar = (SELECT COUNT(*) FROM information_schema.COLUMNS
+                   WHERE TABLE_SCHEMA = @dbname
+                   AND TABLE_NAME = 'users'
+                   AND COLUMN_NAME = 'avatar');
+SET @sql2 = IF(@col_avatar = 0,
+    'ALTER TABLE users ADD COLUMN avatar VARCHAR(255) DEFAULT '''' COMMENT ''头像图片路径'' AFTER job_location',
+    'SELECT 1');
+PREPARE stmt2 FROM @sql2;
+EXECUTE stmt2;
+DEALLOCATE PREPARE stmt2;

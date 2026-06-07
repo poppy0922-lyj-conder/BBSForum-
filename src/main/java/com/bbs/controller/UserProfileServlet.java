@@ -3,13 +3,19 @@ package com.bbs.controller;
 import com.bbs.util.DBUtil;
 import com.bbs.util.PasswordUtil;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
+import jakarta.servlet.http.Part;
 
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -19,20 +25,29 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
  * 用户个人中心（组员B）
  * - /user/profile       个人信息展示
- * - /user/profile/edit  资料编辑（可选改密）
+ * - /user/profile/edit  资料编辑（可选改密、头像上传）
  * - /user/score-log     积分记录查询（分页）
  */
 @WebServlet(name = "userProfile", urlPatterns = {"/user/profile", "/user/profile/edit", "/user/profile/follows", "/user/score-log"})
+@MultipartConfig(fileSizeThreshold = 1024 * 1024,    // 1MB 缓存阈值
+                 maxFileSize = 1024 * 1024 * 5,      // 单个文件最大 5MB
+                 maxRequestSize = 1024 * 1024 * 10)  // 整个请求最大 10MB
 public class UserProfileServlet extends HttpServlet {
 
     private static final Logger LOG = Logger.getLogger(UserProfileServlet.class.getName());
     private static final int PAGE_SIZE = 15;
+
+    /** 头像存储目录（相对于应用根目录） */
+    private static final String AVATAR_DIR = "uploads/avatars";
+    /** 允许的图片格式 */
+    private static final String[] ALLOWED_TYPES = {"image/jpeg", "image/png", "image/gif", "image/webp"};
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -66,9 +81,15 @@ public class UserProfileServlet extends HttpServlet {
             request.setAttribute("pageTitle", "个人中心");
             request.getRequestDispatcher("/user/profile.jsp").forward(request, response);
         } else if ("/user/profile/edit".equals(path)) {
+            // 加载最近积分记录（供边栏展示）
+            List<Map<String, Object>> scoreLogs = loadScoreLogs(userId, 5);
+            request.setAttribute("scoreLogs", scoreLogs);
             request.setAttribute("pageTitle", "编辑资料");
             request.getRequestDispatcher("/user/profile_edit.jsp").forward(request, response);
         } else if ("/user/profile/follows".equals(path)) {
+            // 加载最近积分记录（供边栏展示）
+            List<Map<String, Object>> scoreLogs = loadScoreLogs(userId, 5);
+            request.setAttribute("scoreLogs", scoreLogs);
             List<Map<String, Object>> followList = loadFollows(userId);
             request.setAttribute("followList", followList);
             request.setAttribute("pageTitle", "我的关注");
@@ -111,18 +132,41 @@ public class UserProfileServlet extends HttpServlet {
         if (password != null && !password.trim().isEmpty()) {
             if (password.trim().length() < 6) {
                 request.setAttribute("error", "新密码长度至少 6 位");
-                Map<String, Object> user = loadUserById(userId);
-                request.setAttribute("user", user);
+                loadEditPageData(request, userId);
                 request.getRequestDispatcher("/user/profile_edit.jsp").forward(request, response);
                 return;
             }
             if (password2 == null || !password.trim().equals(password2.trim())) {
                 request.setAttribute("error", "两次输入的新密码不一致");
-                Map<String, Object> user = loadUserById(userId);
-                request.setAttribute("user", user);
+                loadEditPageData(request, userId);
                 request.getRequestDispatcher("/user/profile_edit.jsp").forward(request, response);
                 return;
             }
+        }
+
+        // 处理头像上传
+        String avatarPath = null;
+        String avatarError = null;
+        try {
+            Part avatarPart = request.getPart("avatar");
+            if (avatarPart != null && avatarPart.getSize() > 0) {
+                AvatarUploadResult result = handleAvatarUpload(avatarPart, request, userId);
+                if (result.success) {
+                    avatarPath = result.path;
+                } else {
+                    avatarError = result.error;
+                }
+            }
+        } catch (Exception e) {
+            LOG.log(Level.WARNING, "头像上传处理异常", e);
+            avatarError = "头像上传失败，请重试";
+        }
+
+        if (avatarError != null) {
+            request.setAttribute("error", avatarError);
+            loadEditPageData(request, userId);
+            request.getRequestDispatcher("/user/profile_edit.jsp").forward(request, response);
+            return;
         }
 
         Connection conn = null;
@@ -130,15 +174,31 @@ public class UserProfileServlet extends HttpServlet {
             conn = DBUtil.getConnection();
             conn.setAutoCommit(false);
 
-            try (PreparedStatement ps = conn.prepareStatement(
-                    "UPDATE users SET phone = ?, job_type = ?, job_location = ? WHERE id = ?")) {
-                ps.setString(1, phone == null ? "" : phone.trim());
-                ps.setString(2, jobType == null ? "" : jobType.trim());
-                ps.setString(3, jobLocation == null ? "" : jobLocation.trim());
-                ps.setInt(4, userId);
-                ps.executeUpdate();
+            // 更新基本资料
+            if (avatarPath != null) {
+                // 有头像上传，同时更新头像路径
+                try (PreparedStatement ps = conn.prepareStatement(
+                        "UPDATE users SET phone = ?, job_type = ?, job_location = ?, avatar = ? WHERE id = ?")) {
+                    ps.setString(1, phone == null ? "" : phone.trim());
+                    ps.setString(2, jobType == null ? "" : jobType.trim());
+                    ps.setString(3, jobLocation == null ? "" : jobLocation.trim());
+                    ps.setString(4, avatarPath);
+                    ps.setInt(5, userId);
+                    ps.executeUpdate();
+                }
+            } else {
+                // 无头像上传，只更新基本资料
+                try (PreparedStatement ps = conn.prepareStatement(
+                        "UPDATE users SET phone = ?, job_type = ?, job_location = ? WHERE id = ?")) {
+                    ps.setString(1, phone == null ? "" : phone.trim());
+                    ps.setString(2, jobType == null ? "" : jobType.trim());
+                    ps.setString(3, jobLocation == null ? "" : jobLocation.trim());
+                    ps.setInt(4, userId);
+                    ps.executeUpdate();
+                }
             }
 
+            // 更新密码（如有）
             if (password != null && !password.trim().isEmpty()) {
                 try (PreparedStatement ps = conn.prepareStatement("UPDATE users SET password = ? WHERE id = ?")) {
                     ps.setString(1, PasswordUtil.hash(password.trim()));
@@ -154,8 +214,7 @@ public class UserProfileServlet extends HttpServlet {
             }
             e.printStackTrace();
             request.setAttribute("error", "保存失败，请重试");
-            Map<String, Object> user = loadUserById(userId);
-            request.setAttribute("user", user);
+            loadEditPageData(request, userId);
             request.getRequestDispatcher("/user/profile_edit.jsp").forward(request, response);
             return;
         } finally {
@@ -172,6 +231,123 @@ public class UserProfileServlet extends HttpServlet {
         }
 
         response.sendRedirect(request.getContextPath() + "/user/profile?updated=1");
+    }
+
+    /** 加载编辑页面所需数据（用于出错回显） */
+    private void loadEditPageData(HttpServletRequest request, int userId) {
+        Map<String, Object> user = loadUserById(userId);
+        request.setAttribute("user", user);
+        List<Map<String, Object>> scoreLogs = loadScoreLogs(userId, 5);
+        request.setAttribute("scoreLogs", scoreLogs);
+    }
+
+    /** 头像上传处理 */
+    private AvatarUploadResult handleAvatarUpload(Part part, HttpServletRequest request, int userId) {
+        // 校验文件类型
+        String contentType = part.getContentType();
+        boolean typeAllowed = false;
+        for (String allowed : ALLOWED_TYPES) {
+            if (allowed.equals(contentType)) {
+                typeAllowed = true;
+                break;
+            }
+        }
+        if (!typeAllowed) {
+            return AvatarUploadResult.fail("仅支持 JPG、PNG、GIF、WebP 格式的图片");
+        }
+
+        // 校验文件大小（5MB）
+        if (part.getSize() > 1024 * 1024 * 5) {
+            return AvatarUploadResult.fail("图片大小不能超过 5MB");
+        }
+
+        try {
+            // 构建存储路径：{webapp}/uploads/avatars/{userId}_{uuid}.ext
+            String realPath = request.getServletContext().getRealPath("");
+            Path avatarDir = Paths.get(realPath, AVATAR_DIR);
+            if (!Files.exists(avatarDir)) {
+                Files.createDirectories(avatarDir);
+            }
+
+            // 获取文件扩展名
+            String fileName = part.getSubmittedFileName();
+            String ext = "";
+            if (fileName != null && fileName.lastIndexOf('.') > 0) {
+                ext = fileName.substring(fileName.lastIndexOf('.')).toLowerCase();
+            }
+            if (ext.isEmpty()) {
+                // 根据 contentType 推断扩展名
+                switch (contentType) {
+                    case "image/jpeg": ext = ".jpg"; break;
+                    case "image/png": ext = ".png"; break;
+                    case "image/gif": ext = ".gif"; break;
+                    case "image/webp": ext = ".webp"; break;
+                    default: ext = ".jpg";
+                }
+            }
+
+            String newFileName = "user_" + userId + "_" + UUID.randomUUID().toString().substring(0, 8) + ext;
+            Path targetPath = avatarDir.resolve(newFileName);
+
+            // 删除旧头像（如果存在）
+            deleteOldAvatar(request, userId);
+
+            // 保存新头像
+            part.write(targetPath.toString());
+
+            // 返回相对路径（用于数据库存储和页面展示）
+            String relativePath = request.getContextPath() + "/" + AVATAR_DIR + "/" + newFileName;
+            return AvatarUploadResult.success(relativePath);
+        } catch (IOException e) {
+            LOG.log(Level.SEVERE, "头像保存失败", e);
+            return AvatarUploadResult.fail("头像保存失败，请重试");
+        }
+    }
+
+    /** 删除用户旧头像文件 */
+    private void deleteOldAvatar(HttpServletRequest request, int userId) {
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement ps = conn.prepareStatement("SELECT avatar FROM users WHERE id = ?")) {
+            ps.setInt(1, userId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    String oldAvatar = rs.getString("avatar");
+                    if (oldAvatar != null && !oldAvatar.trim().isEmpty()) {
+                        // 提取文件名部分
+                        String fileName = oldAvatar.substring(oldAvatar.lastIndexOf('/') + 1);
+                        String realPath = request.getServletContext().getRealPath("");
+                        Path oldPath = Paths.get(realPath, AVATAR_DIR, fileName);
+                        if (Files.exists(oldPath)) {
+                            Files.delete(oldPath);
+                            LOG.info("已删除旧头像: " + oldPath);
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            LOG.log(Level.WARNING, "删除旧头像失败", e);
+        }
+    }
+
+    /** 头像上传结果 */
+    private static class AvatarUploadResult {
+        boolean success;
+        String path;
+        String error;
+
+        static AvatarUploadResult success(String path) {
+            AvatarUploadResult r = new AvatarUploadResult();
+            r.success = true;
+            r.path = path;
+            return r;
+        }
+
+        static AvatarUploadResult fail(String error) {
+            AvatarUploadResult r = new AvatarUploadResult();
+            r.success = false;
+            r.error = error;
+            return r;
+        }
     }
 
     /** 积分记录页面处理 */
@@ -244,8 +420,12 @@ public class UserProfileServlet extends HttpServlet {
         // 生成分页HTML
         String pagination = buildPagination(request.getContextPath() + "/user/score-log", page, totalPages, totalCount);
 
+        // 侧边栏专用积分记录（限5条，与主内容区分页数据独立）
+        List<Map<String, Object>> sidebarScoreLogs = loadScoreLogs(userId, 5);
+
         request.setAttribute("totalScore", totalScore);
         request.setAttribute("scoreLogs", scoreLogs);
+        request.setAttribute("sidebarScoreLogs", sidebarScoreLogs);
         request.setAttribute("pagination", pagination);
         request.setAttribute("currentPage", page);
         request.setAttribute("totalPages", totalPages);
@@ -300,7 +480,7 @@ public class UserProfileServlet extends HttpServlet {
 
     /** 从数据库加载用户信息（用于个人中心展示/回显） */
     private Map<String, Object> loadUserById(int userId) {
-        String sql = "SELECT id, username, role, phone, job_type, job_location, score, created_at FROM users WHERE id = ?";
+        String sql = "SELECT id, username, role, phone, job_type, job_location, avatar, score, created_at FROM users WHERE id = ?";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, userId);
@@ -313,6 +493,7 @@ public class UserProfileServlet extends HttpServlet {
                     user.put("phone", rs.getString("phone") == null ? "" : rs.getString("phone"));
                     user.put("jobType", rs.getString("job_type") == null ? "" : rs.getString("job_type"));
                     user.put("jobLocation", rs.getString("job_location") == null ? "" : rs.getString("job_location"));
+                    user.put("avatar", rs.getString("avatar") == null ? "" : rs.getString("avatar"));
                     Timestamp createdAt = rs.getTimestamp("created_at");
                     user.put("createdAt", createdAt == null ? "" : createdAt.toString());
                     user.put("score", rs.getInt("score"));

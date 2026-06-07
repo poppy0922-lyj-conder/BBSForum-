@@ -71,7 +71,7 @@ public class UserServlet extends HttpServlet {
             return;
         }
 
-        String sql = "SELECT id, username, password, role, phone, job_type, job_location, score, created_at " +
+        String sql = "SELECT id, username, password, role, phone, job_type, job_location, avatar, score, created_at " +
                 "FROM users WHERE username = ?";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -96,13 +96,14 @@ public class UserServlet extends HttpServlet {
                     user.put("phone", rs.getString("phone") == null ? "" : rs.getString("phone"));
                     user.put("jobType", rs.getString("job_type") == null ? "" : rs.getString("job_type"));
                     user.put("jobLocation", rs.getString("job_location") == null ? "" : rs.getString("job_location"));
+                    user.put("avatar", rs.getString("avatar") == null ? "" : rs.getString("avatar"));
                     user.put("score", rs.getInt("score"));
                     Timestamp createdAt = rs.getTimestamp("created_at");
                     user.put("createdAt", createdAt == null ? "" : createdAt.toString());
 
-                    HttpSession session = request.getSession();
-                    // 防止 Session Fixation：登录成功后更换 SessionId
+                    // 防止 Session Fixation：先更换 SessionId，再获取新 session 存储用户信息
                     request.changeSessionId();
+                    HttpSession session = request.getSession();
                     session.setAttribute("user", user);
 
                     // 每日首次登录积分奖励
