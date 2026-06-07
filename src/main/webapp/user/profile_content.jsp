@@ -60,9 +60,9 @@
             </button>
         </div>
 
-        <!-- 退出登录按钮 -->
-        <div class="bg-white rounded-lg shadow-sm p-4 text-center">
-            <a href="${pageContext.request.contextPath}/logout" class="inline-flex items-center gap-2 px-5 py-2 text-sm border border-red-200 rounded text-red-500 hover:bg-red-50 hover:text-red-600 transition no-underline">
+        <!-- 退出登录 -->
+        <div class="bg-white rounded-lg shadow-sm p-6">
+            <a href="${pageContext.request.contextPath}/logout" class="block w-full text-center px-4 py-2.5 border border-red-200 text-red-500 text-sm rounded hover:bg-red-50 hover:text-red-600 transition no-underline">
                 <i class="fa fa-sign-out"></i> 退出登录
             </a>
         </div>
