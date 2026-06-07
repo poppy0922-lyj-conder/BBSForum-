@@ -1,6 +1,15 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 
+<!-- 面包屑 -->
+<div class="flex items-center gap-2 text-sm text-gray-400 mb-4">
+    <a href="${pageContext.request.contextPath}/" class="text-gray-500 hover:text-blue-500 no-underline">首页</a>
+    <span>/</span>
+    <a href="${pageContext.request.contextPath}/demand" class="text-gray-500 hover:text-blue-500 no-underline">需求列表</a>
+    <span>/</span>
+    <span class="text-gray-700">发布悬赏</span>
+</div>
+
 <!-- 发布悬赏 -->
 <div class="mb-4 pb-3 border-b border-gray-200">
     <h2 class="text-lg font-semibold text-gray-900">

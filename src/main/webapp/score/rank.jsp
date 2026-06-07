@@ -3,4 +3,5 @@
 <c:set var="pageTitle" value="积分排行" scope="request" />
 <c:set var="contentPage" value="/score/rank_content.jsp" scope="request" />
 <c:set var="showSidebar" value="true" scope="request" />
+<c:set var="rankActive" value="true" scope="request" />
 <jsp:include page="/layouts/main.jsp" />

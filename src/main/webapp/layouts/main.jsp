@@ -106,11 +106,11 @@
             <div class="px-4 pt-4 pb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">论坛板块</div>
             <ul>
                 <li>
-                    <a href="${pageContext.request.contextPath}/" class="flex items-start gap-2 px-4 py-3 no-underline ${empty currentCategory and empty demandActive ? 'bg-blue-50 text-blue-500 font-medium' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-500'}">
+                    <a href="${pageContext.request.contextPath}/" class="flex items-start gap-2 px-4 py-3 no-underline ${homeActive ? 'bg-blue-50 text-blue-500 font-medium' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-500'}">
                         <i class="fa fa-home mt-0.5"></i>
                         <div>
                             <div class="text-sm">全部帖子</div>
-                            <div class="text-[11px] font-normal mt-0.5 ${empty currentCategory and empty demandActive ? 'text-blue-400' : 'text-gray-400'}">浏览所有板块的最新帖子</div>
+                            <div class="text-[11px] font-normal mt-0.5 ${homeActive ? 'text-blue-400' : 'text-gray-400'}">浏览所有板块的最新帖子</div>
                         </div>
                     </a>
                 </li>
@@ -157,7 +157,7 @@
                 <div class="px-4 pt-3 pb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">热门推荐</div>
                 <ul>
                     <li>
-                        <a href="${pageContext.request.contextPath}/score/rank" class="flex items-start gap-2 px-4 py-3 no-underline text-gray-700 hover:bg-blue-50 hover:text-blue-500">
+                        <a href="${pageContext.request.contextPath}/score/rank" class="flex items-start gap-2 px-4 py-3 no-underline ${rankActive ? 'bg-blue-50 text-blue-500 font-medium' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-500'}">
                             <i class="fa fa-trophy mt-0.5"></i>
                             <div>
                                 <div class="text-sm">积分排行</div>
