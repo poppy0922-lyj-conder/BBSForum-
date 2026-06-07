@@ -51,3 +51,10 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
+
+// 修复浏览器返回按钮不刷新（bfcache 问题）
+window.addEventListener('pageshow', function(event) {
+    if (event.persisted) {
+        window.location.reload();
+    }
+});

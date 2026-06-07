@@ -81,6 +81,8 @@
                             </span>
                             <span><i class="fa fa-folder-o mr-0.5"></i> ${post.categoryName}</span>
                             <span><i class="fa fa-eye mr-0.5"></i> ${post.viewCount}</span>
+                            <span><i class="fa fa-heart-o mr-0.5 text-red-400"></i> ${post.likeCount}</span>
+                            <span><i class="fa fa-bookmark-o mr-0.5 text-yellow-500"></i> ${post.favoriteCount}</span>
                             <span><i class="fa fa-clock-o mr-0.5"></i> ${post.createdAt}</span>
                         </div>
                     </div>
