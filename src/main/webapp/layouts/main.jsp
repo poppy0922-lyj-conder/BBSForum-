@@ -11,14 +11,22 @@
     <script>tailwind.config={theme:{extend:{colors:{primary:'#1677ff',danger:'#ff4d4f',warn:'#fa8c16',elite:'#eb2f96'}}}}</script>
     <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 </head>
-<body class="bg-gray-100 min-h-screen">
+<body class="bg-gray-100 min-h-screen flex flex-col">
 
 <!-- 顶部导航 -->
 <header class="bg-white shadow-sm sticky top-0 z-50 border-b border-gray-200">
     <div class="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
-        <a href="${pageContext.request.contextPath}/" class="text-xl font-bold text-red-500 no-underline">
-            <i class="fa fa-fire"></i> BBS技术社区
-        </a>
+        <div class="flex items-center gap-3">
+            <c:if test="${adminLayout}">
+                <a href="${pageContext.request.contextPath}/" class="flex items-center gap-1 text-sm text-gray-500 hover:text-blue-500 no-underline transition" title="返回首页">
+                    <i class="fa fa-home"></i> 返回首页
+                </a>
+                <span class="text-gray-300">|</span>
+            </c:if>
+            <a href="${pageContext.request.contextPath}/" class="text-xl font-bold text-red-500 no-underline">
+                <i class="fa fa-fire"></i> BBS技术社区
+            </a>
+        </div>
         <div class="flex items-center gap-2">
             <!-- 搜索框 -->
             <form action="${pageContext.request.contextPath}/post/search" method="get" class="flex items-center">
@@ -88,6 +96,7 @@
 </c:if>
 
 <!-- 主体 -->
+<div class="flex-1">
 <c:choose>
     <c:when test="${showSidebar}">
     <div class="max-w-7xl mx-auto px-6 py-5 flex gap-5">
@@ -230,6 +239,65 @@
     </aside>
 </div>
 </c:when>
+<c:when test="${adminLayout}">
+<div class="max-w-7xl mx-auto px-6 py-5 flex gap-5">
+    <!-- 管理后台侧边栏 -->
+    <aside class="w-60 shrink-0">
+        <div class="bg-white rounded-lg shadow-sm overflow-hidden sticky top-[72px]">
+            <div class="px-4 pt-4 pb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                <i class="fa fa-shield"></i> 后台管理
+            </div>
+            <ul>
+                <li>
+                    <a href="${pageContext.request.contextPath}/admin"
+                       class="flex items-start gap-2 px-4 py-3 no-underline ${adminActiveMenu == 'dashboard' ? 'bg-blue-50 text-blue-500 font-medium' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-500'}">
+                        <i class="fa fa-dashboard mt-0.5"></i>
+                        <div>
+                            <div class="text-sm">控制台</div>
+                            <div class="text-[11px] ${adminActiveMenu == 'dashboard' ? 'text-blue-400' : 'text-gray-400'} font-normal mt-0.5">站点数据概览</div>
+                        </div>
+                    </a>
+                </li>
+                <li>
+                    <a href="${pageContext.request.contextPath}/admin/categories"
+                       class="flex items-start gap-2 px-4 py-3 no-underline ${adminActiveMenu == 'categories' or adminActiveMenu == 'category_edit' ? 'bg-blue-50 text-blue-500 font-medium' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-500'}">
+                        <i class="fa fa-th-list mt-0.5"></i>
+                        <div>
+                            <div class="text-sm">板块管理</div>
+                            <div class="text-[11px] ${adminActiveMenu == 'categories' or adminActiveMenu == 'category_edit' ? 'text-blue-400' : 'text-gray-400'} font-normal mt-0.5">添加/编辑/删除板块</div>
+                        </div>
+                    </a>
+                </li>
+                <li>
+                    <a href="${pageContext.request.contextPath}/admin/post/manage"
+                       class="flex items-start gap-2 px-4 py-3 no-underline ${adminActiveMenu == 'posts' ? 'bg-blue-50 text-blue-500 font-medium' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-500'}">
+                        <i class="fa fa-file-text mt-0.5"></i>
+                        <div>
+                            <div class="text-sm">帖子管理</div>
+                            <div class="text-[11px] ${adminActiveMenu == 'posts' ? 'text-blue-400' : 'text-gray-400'} font-normal mt-0.5">置顶/加精/编辑帖子</div>
+                        </div>
+                    </a>
+                </li>
+                <li>
+                    <a href="${pageContext.request.contextPath}/admin/users"
+                       class="flex items-start gap-2 px-4 py-3 no-underline ${adminActiveMenu == 'users' or adminActiveMenu == 'user_edit' ? 'bg-blue-50 text-blue-500 font-medium' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-500'}">
+                        <i class="fa fa-users mt-0.5"></i>
+                        <div>
+                            <div class="text-sm">用户管理</div>
+                            <div class="text-[11px] ${adminActiveMenu == 'users' or adminActiveMenu == 'user_edit' ? 'text-blue-400' : 'text-gray-400'} font-normal mt-0.5">查看/编辑/删除用户</div>
+                        </div>
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </aside>
+
+    <!-- 管理内容区 -->
+    <main class="flex-1 min-w-0">
+        <jsp:include page="${contentPage}" />
+    </main>
+</div>
+</c:when>
 <c:otherwise>
 <div class="max-w-6xl mx-auto px-6 py-5">
     <main>
@@ -238,9 +306,10 @@
 </div>
 </c:otherwise>
 </c:choose>
+</div>
 
 <!-- 底部 -->
-<footer class="bg-white border-t border-gray-200 py-5 mt-8 text-center text-xs text-gray-400">
+<footer class="bg-white border-t border-gray-200 py-5 mt-auto text-center text-xs text-gray-400">
     BBS技术社区 &copy; 2026 &middot; 课程设计项目
 </footer>
 

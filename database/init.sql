@@ -67,9 +67,9 @@ CREATE TABLE IF NOT EXISTS posts (
     ai_summary  TEXT DEFAULT NULL COMMENT 'AI生成的内容总结',
     ai_user_id  INT DEFAULT NULL COMMENT 'AI总结生成者ID',
     keywords    VARCHAR(200) DEFAULT '' COMMENT '关键词，逗号分隔',
-    view_count      INT DEFAULT 0 COMMENT '浏览次数',
-    like_count      INT DEFAULT 0 COMMENT '点赞数',
-    favorite_count  INT DEFAULT 0 COMMENT '收藏数',
+    view_count  INT DEFAULT 0 COMMENT '浏览次数',
+    like_count     INT DEFAULT 0 COMMENT '点赞数',
+    favorite_count INT DEFAULT 0 COMMENT '收藏数',
     created_at  DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '发布时间',
     updated_at  DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间',
     FOREIGN KEY (user_id) REFERENCES users(id),
@@ -153,6 +153,30 @@ CREATE TABLE IF NOT EXISTS daily_checkins (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='每日签到表';
 
 -- ============================================
+-- 8. 帖子点赞表
+-- ============================================
+CREATE TABLE IF NOT EXISTS post_likes (
+    id         INT AUTO_INCREMENT PRIMARY KEY,
+    user_id    INT NOT NULL COMMENT '用户ID',
+    post_id    INT NOT NULL COMMENT '帖子ID',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '点赞时间',
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE,
+    UNIQUE KEY uk_user_post (user_id, post_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='帖子点赞表';
+
+-- ============================================
+-- 9. 帖子收藏表
+-- ============================================
+CREATE TABLE IF NOT EXISTS post_favorites (
+    id         INT AUTO_INCREMENT PRIMARY KEY,
+    user_id    INT NOT NULL COMMENT '用户ID',
+    post_id    INT NOT NULL COMMENT '帖子ID',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '收藏时间',
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE,
+    UNIQUE KEY uk_user_post (user_id, post_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='帖子收藏表';
 -- 8. 点赞表
 -- ============================================
 CREATE TABLE IF NOT EXISTS post_likes (
@@ -188,6 +212,24 @@ CREATE TABLE IF NOT EXISTS user_follows (
     created_at        DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '关注时间',
     FOREIGN KEY (user_id) REFERENCES users(id),
     FOREIGN KEY (followed_user_id) REFERENCES users(id),
+    UNIQUE KEY uk_user_followed (user_id, followed_user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户关注表';
+
+-- ============================================
+-- 已有数据库迁移补丁（已存在则跳过）
+-- 新部署可忽略以下内容
+-- ============================================
+SET @dbname = DATABASE();
+SET @col_exists = (SELECT COUNT(*) FROM information_schema.COLUMNS
+                   WHERE TABLE_SCHEMA = @dbname
+                   AND TABLE_NAME = 'users'
+                   AND COLUMN_NAME = 'score');
+SET @sql = IF(@col_exists = 0,
+    'ALTER TABLE users ADD COLUMN score INT NOT NULL DEFAULT 0 COMMENT ''积分'' AFTER role',
+    'SELECT 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
     UNIQUE KEY uk_follow (user_id, followed_user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户关注表';
 
