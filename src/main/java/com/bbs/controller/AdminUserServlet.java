@@ -270,7 +270,7 @@ public class AdminUserServlet extends HttpServlet {
 
         // 检查是否有帖子（FK约束会阻止删除）
         try (Connection conn = DBUtil.getConnection();
-             PreparedStatement ps = conn.prepareStatement("SELECT COUNT(*) FROM posts WHERE user_id = ?")) {
+             PreparedStatement ps = conn.prepareStatement("SELECT COUNT(*) FROM posts WHERE user_id = ? AND is_deleted = 0")) {
             ps.setInt(1, id);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next() && rs.getInt(1) > 0) {

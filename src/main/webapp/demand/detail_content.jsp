@@ -72,6 +72,11 @@
             <button onclick="location.href=document.referrer||'${pageContext.request.contextPath}/demand'" class="inline-flex items-center gap-1 px-3 py-1.5 text-sm text-gray-500 bg-gray-100 border border-gray-200 rounded hover:bg-gray-200 transition cursor-pointer">
                 <i class="fa fa-arrow-left"></i> 返回
             </button>
+            <c:if test="${not empty sessionScope.user && sessionScope.user.id != demand.userId}">
+                <button onclick="showReportModal('demand', ${demand.id})" class="inline-flex items-center gap-1 px-3 py-1.5 text-sm text-gray-500 bg-white border border-gray-200 rounded hover:bg-red-50 hover:text-red-500 hover:border-red-200 transition cursor-pointer">
+                    <i class="fa fa-flag-o"></i> 举报
+                </button>
+            </c:if>
             <c:if test="${sessionScope.user.id == demand.userId && demand.status == 'open'}">
                 <a href="${pageContext.request.contextPath}/demand/update?id=${demand.id}"
                    class="inline-flex items-center gap-1 px-3 py-1.5 text-sm text-blue-600 bg-blue-50 border border-blue-200 rounded hover:bg-blue-100 no-underline transition">
@@ -110,6 +115,13 @@
                             <span class="text-xs text-gray-300 ml-auto">#${status.index + 1}</span>
                         </div>
                         <p class="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">${reply.content}</p>
+                        <c:if test="${not empty sessionScope.user && sessionScope.user.id != reply.userId}">
+                            <div class="mt-2 pt-2 border-t border-gray-50">
+                                <button onclick="showReportModal('demand_reply', ${reply.id})" class="text-xs text-gray-400 hover:text-red-500 transition cursor-pointer bg-transparent border-none">
+                                    <i class="fa fa-flag-o"></i> 举报
+                                </button>
+                            </div>
+                        </c:if>
 
                         <!-- 采纳按钮 -->
                         <c:if test="${sessionScope.user.id == demand.userId && demand.status == 'open' && reply.id != demand.bestReplyId}">
@@ -279,4 +291,34 @@ function doAccept() {
 document.getElementById('acceptModal').addEventListener('click', function(e) {
     if (e.target === this) closeAcceptModal();
 });
+
+function showReportModal(targetType, targetId) {
+    var reasonHtml = '<select id="reportReason" class="w-full px-3 py-2 border border-gray-300 rounded text-sm">' +
+        '<option value="spam">垃圾广告</option>' +
+        '<option value="abuse">人身攻击</option>' +
+        '<option value="illegal">政治敏感</option>' +
+        '<option value="porn">色情低俗</option>' +
+        '<option value="other">其他</option></select>';
+    showCustomModal('举报内容', reasonHtml, {
+        confirmText: '提交举报',
+        onConfirm: function(done) {
+            var reason = document.getElementById('reportReason').value;
+            done();
+            fetch('${pageContext.request.contextPath}/report/submit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'targetType=' + targetType + '&targetId=' + targetId + '&reason=' + reason
+            }).then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.success) {
+                    alert(data.message);
+                } else {
+                    showError(data.message);
+                }
+            }).catch(function() {
+                alert('网络错误，请重试');
+            });
+        }
+    });
+}
 </script>
