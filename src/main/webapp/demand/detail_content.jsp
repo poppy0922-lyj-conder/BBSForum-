@@ -69,11 +69,11 @@
         </div>
 
         <div class="flex items-center gap-2 pt-4 border-t border-gray-100 flex-wrap">
-            <button onclick="location.href=document.referrer||'${pageContext.request.contextPath}/demand'" class="inline-flex items-center gap-1 px-3 py-1.5 text-sm text-gray-500 bg-gray-100 border border-gray-200 rounded hover:bg-gray-200 transition cursor-pointer">
+            <button onclick="goBack()" class="inline-flex items-center gap-1 px-3 py-1.5 text-sm text-gray-500 bg-gray-100 border border-gray-200 rounded hover:bg-gray-200 transition cursor-pointer">
                 <i class="fa fa-arrow-left"></i> 返回
             </button>
             <c:if test="${not empty sessionScope.user && sessionScope.user.id != demand.userId}">
-                <button onclick="showReportModal('demand', ${demand.id})" class="inline-flex items-center gap-1 px-3 py-1.5 text-sm text-gray-500 bg-white border border-gray-200 rounded hover:bg-red-50 hover:text-red-500 hover:border-red-200 transition cursor-pointer">
+                <button onclick="showReportModal('demand', ${demand.id}, this)" class="inline-flex items-center gap-1 px-3 py-1.5 text-sm text-gray-500 bg-white border border-gray-200 rounded hover:bg-red-50 hover:text-red-500 hover:border-red-200 transition cursor-pointer">
                     <i class="fa fa-flag-o"></i> 举报
                 </button>
             </c:if>
@@ -117,7 +117,7 @@
                         <p class="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">${reply.content}</p>
                         <c:if test="${not empty sessionScope.user && sessionScope.user.id != reply.userId}">
                             <div class="mt-2 pt-2 border-t border-gray-50">
-                                <button onclick="showReportModal('demand_reply', ${reply.id})" class="text-xs text-gray-400 hover:text-red-500 transition cursor-pointer bg-transparent border-none">
+                                <button onclick="showReportModal('demand_reply', ${reply.id}, this)" class="text-xs text-gray-400 hover:text-red-500 transition cursor-pointer bg-transparent border-none">
                                     <i class="fa fa-flag-o"></i> 举报
                                 </button>
                             </div>
@@ -248,6 +248,22 @@
 </style>
 
 <script>
+// 存储上一页地址到 sessionStorage，解决 PRG 后"返回"问题
+(function() {
+    if (!sessionStorage.getItem('bbs_back') && document.referrer) {
+        sessionStorage.setItem('bbs_back', document.referrer);
+    }
+})();
+function goBack() {
+    var url = sessionStorage.getItem('bbs_back');
+    sessionStorage.removeItem('bbs_back');
+    if (url && url !== window.location.href) {
+        location.href = url;
+    } else {
+        history.back();
+    }
+}
+
 var acceptData = { demandId: null, replyId: null };
 
 function showAcceptModal(demandId, replyId, score) {
@@ -292,7 +308,7 @@ document.getElementById('acceptModal').addEventListener('click', function(e) {
     if (e.target === this) closeAcceptModal();
 });
 
-function showReportModal(targetType, targetId) {
+function showReportModal(targetType, targetId, btn) {
     var reasonHtml = '<select id="reportReason" class="w-full px-3 py-2 border border-gray-300 rounded text-sm">' +
         '<option value="spam">垃圾广告</option>' +
         '<option value="abuse">人身攻击</option>' +
@@ -311,7 +327,12 @@ function showReportModal(targetType, targetId) {
             }).then(function(r) { return r.json(); })
             .then(function(data) {
                 if (data.success) {
-                    alert(data.message);
+                    if (btn) {
+                        btn.disabled = true;
+                        btn.innerHTML = '<i class="fa fa-flag"></i> 已举报';
+                        btn.style.opacity = '0.5';
+                        btn.style.cursor = 'not-allowed';
+                    }
                 } else {
                     showError(data.message);
                 }

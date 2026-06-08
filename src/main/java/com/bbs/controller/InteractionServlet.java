@@ -98,6 +98,8 @@ public class InteractionServlet extends HttpServlet {
                     ps.executeUpdate();
                 }
                 updateCount(conn, "UPDATE posts SET like_count = like_count - 1 WHERE id=? AND like_count>0", postId);
+                // 取消点赞 -3 积分（扣除给帖子作者的积分）
+                addScoreToPostAuthor(conn, postId, -3, "帖子被取消点赞");
                 int count = getCount(conn, "SELECT like_count FROM posts WHERE id=?", postId);
                 response.getWriter().write("{\"ok\":true,\"action\":\"unlike\",\"count\":" + count + "}");
             } else {
@@ -133,6 +135,8 @@ public class InteractionServlet extends HttpServlet {
                     ps.executeUpdate();
                 }
                 updateCount(conn, "UPDATE posts SET favorite_count = favorite_count - 1 WHERE id=? AND favorite_count>0", postId);
+                // 取消收藏 -5 积分
+                addScoreToPostAuthor(conn, postId, -5, "帖子被取消收藏");
                 int count = getCount(conn, "SELECT favorite_count FROM posts WHERE id=?", postId);
                 response.getWriter().write("{\"ok\":true,\"action\":\"unfavorite\",\"count\":" + count + "}");
             } else {
@@ -143,6 +147,10 @@ public class InteractionServlet extends HttpServlet {
                     ps.executeUpdate();
                 }
                 updateCount(conn, "UPDATE posts SET favorite_count = favorite_count + 1 WHERE id=?", postId);
+
+                // 收藏 +5 积分（给帖子作者）
+                addScoreToPostAuthor(conn, postId, 5, "帖子被收藏");
+
                 int count = getCount(conn, "SELECT favorite_count FROM posts WHERE id=?", postId);
                 response.getWriter().write("{\"ok\":true,\"action\":\"favorite\",\"count\":" + count + "}");
             }

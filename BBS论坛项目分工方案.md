@@ -35,10 +35,16 @@
 | 中 | 热门排行 | 按浏览量排序的热度榜 | ✓ 已完成 |
 | 中 | AI智能总结 | 调用AI接口生成帖子摘要 | ✓ 已完成 |
 | 中 | 实时数据面板 | 右侧栏展示帖子数/用户数/评论数/需求数 | ✓ 已完成 |
+| 高 | 仪表盘图表 | 管理员后台交互式Chart.js图表（板块分布环形图+发帖量折线图+注册量折线图） | ✓ 已完成 |
+| 中 | 用户管理模块 | 管理员管理用户（分页/搜索/编辑/角色切换/删除） | ✓ 已完成 |
 | 中 | 热门关键词 | 帖子关键词聚合展示，点击搜索 | ✓ 已完成 |
 | 高 | 图片上传 | 发帖支持上传封面图 | ✓ 已完成 |
+| 中 | 头像上传 | 用户头像上传、实时预览、格式校验、自动删除旧头像 | ✓ 已完成 |
 | 中 | 积分排行 | 用户积分排行榜 | ✓ 已完成 |
 | 高 | 通知提示 | 操作成功/失败浮层通知 | ✓ 已完成 |
+| 高 | 举报系统 | 用户举报帖子/回复/需求，管理员审核处理 | ✓ 已完成 |
+| 高 | 站内通知 | 举报处理结果通知、内容删除通知、AJAX轮询未读 | ✓ 已完成 |
+| 中 | 软删除 | 帖子/回复/需求逻辑删除（is_deleted标记），保留数据可追溯 | ✓ 已完成 |
 | 中 | 封面图自动生成 | 无封面帖子自动生成SVG彩色封面 | ✓ 已完成 |
 | 中 | 统一弹窗系统 | 自定义模态框替换原生alert/confirm | ✓ 已完成 |
 | 中 | 需求独立回复 | 需求回复独立表，与帖子回复分离 | ✓ 已完成 |
@@ -49,7 +55,7 @@
 
 ## 二、角色与模块分工
 
-### 组长：帖子核心功能 + 公共架构 + 创新功能（27%）
+### 组长：帖子核心功能 + 公共架构 + 创新功能（25%）
 
 | 开发层面 | 具体内容 |
 |----------|----------|
@@ -88,106 +94,146 @@ src/main/webapp/
 
 ---
 
-### 组员A：置顶 + 加精 + 搜索 + 热度榜 + 二级确认（17%）
+### 组员A：置顶 + 加精 + 搜索 + 热度榜 + 举报系统 + 软删除 + 站内通知（20%）
 
 | 开发层面 | 具体内容 |
 |----------|----------|
-| **涉及表** | posts 表（is_top 置顶字段 0/1/2、is_elite 加精字段、搜索 LIKE 匹配 title/content、热度排序 view_count） |
-| **后端接口** | 设置置顶（板块置顶/全局置顶）、取消置顶、设置加精、取消加精、帖子搜索（LIKE模糊匹配+分页）、管理员帖子管理列表、热度榜（按浏览量排序） |
-| **前端页面** | 管理员操作面板（置顶/加精按钮/帖子管理页面）、帖子列表排序展示（置顶优先→加精次之→时间倒序）、搜索框及搜索结果展示、置顶加精三级确认提示、热度榜页面 |
+| **涉及表** | posts（is_top/is_elite/搜索/热度）、reports（举报记录）、notifications（站内通知） |
+| **后端接口** | 设置置顶（板块置顶/全局置顶）、取消置顶、设置加精、取消加精、帖子搜索（LIKE模糊匹配+分页+关键词）、管理员帖子管理列表、热度榜（按浏览量排序）、举报提交、举报管理列表、举报处理（审核通过/驳回）、通知列表、通知详情、通知未读数轮询、所有已有查询追加 is_deleted=0 软删除过滤 |
+| **前端页面** | 管理员操作面板（置顶/加精/帖子管理）、举报管理页面（列表+处理）、通知列表页、通知详情页、帖子列表排序展示（置顶优先→加精次之→时间倒序）、搜索框及搜索结果展示、热度榜页面、帖子详情/需求详情举报按钮、顶部通知铃铛+轮询、置顶加精三级确认提示 |
 | **积分协作** | 搜索结果列表中展示帖子作者的积分值 |
 
 **涉及文件清单**：
 
 ```
 src/main/java/com/bbs/controller/
-  AdminPostServlet.java        # 管理员帖子管理（置顶/加精）
-  PostServlet.java             # 帖子搜索（handleSearch/countSearchPosts/searchPosts）
-  HotServlet.java              # 热度榜
+  ReportServlet.java          # 举报处理（新增）
+  NotificationServlet.java    # 站内通知（新增）
+  AdminPostServlet.java       # 管理员帖子管理（置顶/加精）
+  PostServlet.java            # 帖子搜索 + 软删除查询改造
+  HotServlet.java             # 热度榜
+
 src/main/webapp/
-  admin/post_manage.jsp        # 帖子管理页面
+  admin/report_manage.jsp     # 举报管理页（新增）
+  admin/report_manage_content.jsp # 举报管理内容（新增）
+  notification/list.jsp       # 通知列表页（新增）
+  notification/list_content.jsp # 通知列表内容（新增）
+  notification/detail.jsp     # 通知详情页（新增）
+  notification/detail_content.jsp # 通知详情内容（新增）
+  admin/post_manage.jsp       # 帖子管理页面
   admin/post_manage_content.jsp # 管理内容页面
-  layouts/main.jsp             # 搜索框组件
-  post/list.jsp                # 搜索结果列表（复用首页模板）
-  post/hot_content.jsp         # 热度榜页面
+  layouts/main.jsp            # 搜索框 + 通知铃铛 + 举报管理菜单项 + 通知轮询
+  post/list.jsp               # 搜索结果列表（复用首页模板）
+  post/hot_content.jsp        # 热度榜页面
+  post/detail_content.jsp     # 举报按钮
+  demand/detail_content.jsp   # 举报按钮
 ```
 
-**管理后台入口**：顶部导航栏用户名旁 → 管理
+**管理后台入口**：顶部导航栏用户名旁 → 管理 → 举报管理
 **搜索入口**：顶部导航栏搜索框
+**通知入口**：顶部导航栏通知铃铛
 
 ---
 
-### 组员B：用户系统 + 签到 + 登录奖励（19%）
+### 组员B：用户系统 + 签到 + 头像 + 个人中心扩展 + 鉴权拦截（19%）
 
 | 开发层面 | 具体内容 |
 |----------|----------|
-| **涉及表** | 用户表（users）建表，字段包含：用户名、密码、角色、联系方式、工作性质、工作地点、积分；签到表（daily_checkins）建表 |
-| **后端接口** | 注册接口、登录接口、退出登录、个人资料查询、个人资料更新、密码修改、session鉴权、每日签到接口、登录+2积分 |
-| **前端页面** | 注册页、登录页、个人中心页（查看资料+积分展示）、资料编辑页、签到按钮UI |
-| **积分协作** | 登录成功当天首次+2分、签到功能（连续签到递增） |
+| **涉及表** | 用户表（users）建表，字段包含：用户名、密码、角色、联系方式、工作性质、工作地点、头像路径、积分；签到表（daily_checkins）建表；积分流水表（score_logs）积分记录查询 |
+| **后端接口** | 注册接口（BCrypt加密+事务）、登录接口（BCrypt/明文兼容+自动升级+Session Fixation防护）、退出登录、个人资料查询、个人资料更新（含头像上传JPG/PNG/GIF/WebP格式校验+自动删除旧头像）、密码修改、session鉴权拦截器（AuthFilter保护个人中心/后台/管理员校验）、每日签到接口（连续递增算法）、登录+2积分（防重复奖励）、积分流水查询（分页）、我的帖子查询、我的悬赏查询、我的点赞查询、我的收藏查询 |
+| **前端页面** | 注册页（表单校验）、登录页（错误提示）、个人中心页（头像展示/首字母兜底/签到按钮AJAX/积分展示）、资料编辑页（头像上传实时预览FileReader+XSS过滤）、我的帖子列表、我的悬赏列表、我的点赞列表、我的收藏列表、积分流水记录（分页+正负号颜色）、公共边栏组件（导航高亮+最近积分记录5条）、头部栏头像展示 |
+| **积分协作** | 登录成功当天首次+2分（事务+流水）、签到功能（连续签到5~15分递增封顶15、断签重置、事务+流水） |
 
 **涉及文件清单**：
 
 ```
 src/main/java/com/bbs/controller/
-  UserServlet.java             # 注册/登录/登出 + 登录+2分
-  UserProfileServlet.java      # 个人中心/资料编辑
+  UserServlet.java             # 注册/登录/登出/签到/登录+2分
+  UserProfileServlet.java      # 个人中心/资料编辑/头像上传/积分记录
+  UserProfilePlaceholderServlet.java  # 我的帖子/悬赏/点赞/收藏（新增）
+
+src/main/java/com/bbs/filter/
+  AuthFilter.java              # Session鉴权拦截器（新增）
 
 src/main/webapp/user/
-  login.jsp                    # 登录页
-  register.jsp                 # 注册页
-  profile.jsp / profile_content.jsp          # 个人中心
-  profile_edit.jsp / profile_edit_content.jsp # 资料编辑
+  login.jsp / login_content.jsp           # 登录页
+  register.jsp / register_content.jsp     # 注册页
+  profile.jsp / profile_content.jsp       # 个人中心
+  profile_edit.jsp / profile_edit_content.jsp  # 资料编辑
+  my_posts.jsp / my_posts_content.jsp     # 我的帖子（新增）
+  my_demands.jsp / my_demands_content.jsp # 我的悬赏（新增）
+  my_likes.jsp / my_likes_content.jsp     # 我的点赞（新增）
+  my_favorites.jsp / my_favorites_content.jsp # 我的收藏（新增）
+  score_log.jsp / score_log_content.jsp   # 积分记录（新增）
+  profile_sidebar.jsp                     # 公共边栏组件（新增）
+
+src/main/webapp/layouts/main.jsp          # 头部栏头像展示、登录/注册页隐藏搜索框
 ```
+
+**个人中心入口**：顶部导航栏头像/用户名 → 个人中心
+**签到入口**：个人中心右上角签到按钮
 
 ---
 
-### 组员C：板块管理 + 文章编辑 + 分板块展示 + 采纳页面（19%）
+### 组员C：板块管理 + 文章编辑 + 分板块展示 + 用户管理 + 仪表盘图表 + 后台UI（19%）
 
 | 开发层面 | 具体内容 |
 |----------|----------|
-| **涉及表** | 板块表（categories）建表，字段：板块名称、描述、排序权重 |
-| **后端接口** | 板块CRUD接口、按板块筛选帖子接口、文章编辑接口（作者可改自己、管理员可改所有）、文章删除接口、板块编辑页面 |
-| **前端页面** | 板块管理页（管理员）、首页分板块展示区、帖子编辑页、板块编辑页 |
+| **涉及表** | 板块表（categories）建表、用户表（users）用户管理查询 |
+| **后端接口** | 板块CRUD接口、按板块筛选帖子接口、帖子编辑接口（作者可改自己/管理员可改所有）、帖子删除接口、用户管理（分页+搜索+编辑+角色切换+删除受保护不能删自己/有帖子的用户）、仪表盘图表数据JSON接口（板块分布环形图+近30天发帖折线图+近7天注册折线图）、管理员帖子管理搜索排序增强（关键词/作者/板块筛选+ID升降序） |
+| **前端页面** | 板块管理页（添加/编辑/删除）、首页分板块展示区、帖子编辑页、板块编辑页、用户管理列表页（分页+搜索）、用户编辑表单页、管理员帖子管理增强（搜索栏+排序按钮+筛选条件保持）、仪表盘交互式图表（Chart.js 4 环形图+折线图）、后台全局UI（返回首页按钮+底部固定布局+用户管理导航） |
 | **积分协作** | 需求详情页回复列表"采纳"交互、编辑文章页显示作者积分 |
 
 **涉及文件清单**：
 
 ```
 src/main/java/com/bbs/controller/
-  CategoryServlet.java         # 板块帖子列表
-  AdminCategoryServlet.java    # 板块管理CRUD
+  CategoryServlet.java          # 板块帖子列表
+  AdminCategoryServlet.java     # 板块管理CRUD
+  PostEditServlet.java          # 帖子编辑（新增）
+  AdminUserServlet.java         # 用户管理（新增）
+  AdminDashboardServlet.java    # 仪表盘图表数据JSON（新增）
+  AdminPostServlet.java         # 帖子管理搜索排序增强（修改）
+
+src/main/webapp/admin/
+  categories.jsp / categories_content.jsp   # 板块管理
+  category_edit.jsp / category_edit_content.jsp # 板块编辑
+  users.jsp / users_content.jsp             # 用户管理（新增）
+  user_edit.jsp / user_edit_content.jsp     # 用户编辑（新增）
+  post_manage_content.jsp                   # 帖子管理增强（修改）
+  index_content.jsp                         # 仪表盘图表（修改）
 
 src/main/webapp/post/
-  edit.jsp / edit_content.jsp  # 帖子编辑页
-  admin/categories.jsp         # 板块管理页
-  admin/categories_content.jsp # 板块管理内容
+  edit.jsp / edit_content.jsp               # 帖子编辑
+
+src/main/webapp/layouts/main.jsp           # 后台全局UI（修改：返回首页+底部固定+导航）
+src/main/java/com/bbs/util/PostMapper.java # 新增mapUserRow方法（修改）
+database/init.sql                          # 新增列和表定义（修改）
 ```
 
 ---
 
-### 组员D：需求悬赏 + 积分流转 + 排行榜（18%）
+### 组员D：需求悬赏 + 积分流转 + 排行榜（17%）
 
 | 开发层面 | 具体内容 |
 |----------|----------|
-| **涉及表** | 需求表（demands）、积分流水表（score_logs）、需求回复表（demand_replies） |
-| **后端接口** | 发布需求接口、需求列表/详情接口、需求更新接口、需求回复接口、采纳回复接口、积分记录查询接口、积分排行榜接口 |
-| **前端页面** | 发布需求页、需求编辑页、需求列表页（可点击/状态标识）、需求详情页（回复+采纳）、积分排行页、积分记录页 |
-| **积分协作** | 发布需求扣分（事务+行锁）、采纳回复加分（事务+行锁）、积分排行榜、积分流水记录 |
+| **涉及表** | 需求表（demands）、需求回复表（demand_replies）、积分流水表（score_logs） |
+| **后端接口** | 发布需求接口（积分校验score≥悬赏分+事务扣分）、需求列表接口（分页）、需求详情接口、采纳回复接口（FOR UPDATE行锁+权限/状态校验+积分转移事务）、积分排行榜接口（ORDER BY score DESC，全站排名+金银铜奖杯+当前用户高亮）、积分流水记录接口 |
+| **前端页面** | 发布需求页（板块选择+标题+内容+悬赏积分表单）、需求列表页（悬赏积分标签+状态标识+分页）、需求详情页（回复列表+采纳按钮，仅发布者可见）、积分排行榜（金银铜奖杯+钻石图标+当前用户蓝色高亮）、积分流水记录（正负号颜色区分） |
+| **积分协作** | 发布需求扣分（事务+积分不足校验）、采纳回复加分（FOR UPDATE行锁防并发、权限校验、状态校验「已结束不可再次采纳」、事务原子性） |
 
 **涉及文件清单**：
 
 ```
 src/main/java/com/bbs/controller/
-  DemandServlet.java           # 需求发布/列表/详情/回复/采纳/更新
+  DemandServlet.java           # 需求发布/列表/详情/采纳
   ScoreServlet.java            # 积分排行榜/积分记录
 
 src/main/webapp/
   demand/detail_content.jsp    # 需求详情（回复+采纳弹窗）
   post/demand_content.jsp      # 需求列表内容
   post/demand_create_content.jsp # 发布需求内容
-  post/demand_edit_content.jsp # 编辑需求内容
-  score/rank_content.jsp       # 排行榜页面
+  score/rank_content.jsp       # 排行榜页面（金银铜奖杯美化）
   score/record_content.jsp     # 积分流水页面
 ```
 
@@ -196,14 +242,14 @@ src/main/webapp/
 ## 三、工作量占比
 
 ```
-组长（帖子核心+架构+创新+积分+封面+弹窗）：    *************************** 27%
-组员C（板块+编辑+展示+采纳）：              *******************             19%
-组员B（用户系统+签到+登录奖励）：            *******************             19%
-组员D（需求+积分+排行榜）：                  ******************             18%
-组员A（置顶+加精+搜索+热度榜+确认）：        *****************              17%
+组长（帖子核心+架构+创新+积分+封面+弹窗）：    *************************    25%
+组员A（置顶+加精+搜索+热度榜+举报+软删除+通知）：********************               20%
+组员B（用户系统+签到+头像+个人中心扩展+鉴权拦截）：*******************              19%
+组员C（板块+编辑+展示+用户管理+仪表盘图表+后台UI）：*******************              19%
+组员D（需求+积分+排行榜）：                  *****************                17%
 ```
 
-> 组长新增创新功能加分项（关注/点赞/收藏/AI总结/热度榜/实时数据/热门标签/封面生成/统一弹窗/积分集成等），工作量相应增加。
+> 组长新增创新功能加分项（关注/点赞/收藏/AI总结/热度榜/实时数据/热门标签/封面生成/统一弹窗/积分集成等）。
 
 ---
 
@@ -211,10 +257,10 @@ src/main/webapp/
 
 | 成员 | 涉及表数 | 后端接口 | 前端页面 | 积分相关 |
 |------|:----------:|:--------:|:--------:|:--------:|
-| 组长 | x5 | x11 | x5 | 发帖+10、回复+2、点赞+3 |
-| 组员A | x1 | x6 | x4 | 搜索列表展示积分 |
-| 组员B | x2 | x7 | x4 | 签到+5、登录+2 |
-| 组员C | x1 | x6 | x4 | 采纳页面交互 |
+| 组长 | x5 | x11 | x5 | 发帖+10、回复+2、点赞+3、收藏+5 |
+| 组员A | x3 | x8 | x7 | 搜索列表展示积分 |
+| 组员B | x3 | x10 | x10 | 签到+5~15、登录+2 |
+| 组员C | x2 | x10 | x8 | 采纳页面交互 |
 | 组员D | x3 | x6 | x5 | 发布扣分、采纳加分、排行榜 |
 
 > 每人至少负责 **1张表、2个以上接口、2个以上页面**，确保所有成员都有实质性开发内容。
@@ -381,6 +427,32 @@ java -cp "target/classes;target/dependency/*" com.bbs.Main
 | score_earned | INT | 本次获得积分，默认5 |
 | created_at | DATETIME | 签到时间 |
 
+### 举报记录表（reports）—— 组员A负责
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | INT | 主键自增 |
+| reporter_id | INT | 举报人ID |
+| target_type | ENUM | 举报类型：post/reply/demand/demand_reply |
+| target_id | INT | 被举报对象ID |
+| reason | VARCHAR(20) | 举报原因代码：spam/abuse/illegal/porn/other |
+| status | ENUM | 处理状态：pending/approved/rejected |
+| handler_id | INT | 处理人ID（管理员） |
+| handle_note | VARCHAR(200) | 处理备注 |
+| created_at | DATETIME | 举报时间 |
+| updated_at | DATETIME | 更新时间 |
+
+### 站内通知表（notifications）—— 组员A负责
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | INT | 主键自增 |
+| user_id | INT | 接收人ID |
+| type | VARCHAR(20) | 类型：report_result/content_deleted |
+| content | VARCHAR(500) | 通知内容 |
+| is_read | TINYINT | 0未读 1已读 |
+| created_at | DATETIME | 创建时间 |
+
 ### 互动表（组长新增）
 
 **关注表（user_follows）**
@@ -419,8 +491,9 @@ users ──< daily_checkins
 users ──< user_follows >── users
 users ──< post_likes >── posts
 users ──< post_favorites >── posts
+users ──< reports              （举报人→记录）
+users ──< notifications        （用户→通知）
 categories ──< posts
-demands.demand_id = demand_replies.demand_id
 ```
 
 ---
@@ -448,12 +521,25 @@ GET    /BBSForum/user/profile                         个人中心
 GET    /BBSForum/user/profile/edit                    编辑资料
 POST   /BBSForum/user/profile/edit                    提交编辑
 GET    /BBSForum/user/checkin                         每日签到（+5积分 组员B）
+GET    /BBSForum/user/score-log                       积分记录（组员B）
 GET    /BBSForum/user/profile/follows                 关注列表（组长新增）
+GET    /BBSForum/user/profile/posts                   我的帖子（组员B新增）
+GET    /BBSForum/user/profile/demands                 我的悬赏（组员B新增）
+GET    /BBSForum/user/profile/likes                   我的点赞（组员B新增）
+GET    /BBSForum/user/profile/favorites               我的收藏（组员B新增）
 POST   /BBSForum/interact/follow                      关注/取消关注（组长新增）
 POST   /BBSForum/interact/like                        点赞/取消点赞（+3积分 组长新增）
 POST   /BBSForum/interact/favorite                    收藏/取消收藏（组长新增）
 GET    /BBSForum/hot                                  热度榜（组员A）
-GET    /BBSForum/admin                                管理员首页
+GET    /BBSForum/admin                                管理员首页（含Chart.js图表）
+GET    /BBSForum/admin/users                          用户管理列表（组员C）
+GET    /BBSForum/admin/users/edit                     用户编辑（组员C）
+POST   /BBSForum/admin/users/edit                     保存用户编辑（组员C）
+POST   /BBSForum/admin/users/toggleRole               切换用户角色（组员C）
+POST   /BBSForum/admin/users/delete                   删除用户（组员C）
+GET    /BBSForum/admin/chart/postsByCategory           板块分布图表数据JSON（组员C）
+GET    /BBSForum/admin/chart/dailyPosts                近30天发帖量图表数据JSON（组员C）
+GET    /BBSForum/admin/chart/userGrowth                近7天注册量图表数据JSON（组员C）
 POST   /BBSForum/admin/post/top                       置顶帖子（组员A）
 POST   /BBSForum/admin/post/elite                     加精帖子（组员A）
 POST   /BBSForum/admin/category/add                   添加板块
@@ -470,6 +556,11 @@ POST   /BBSForum/demand/update                        提交编辑
 GET    /BBSForum/logout                               退出登录
 GET    /BBSForum/score/rank                           积分排行
 GET    /BBSForum/score/record                         积分记录
+POST   /BBSForum/report                               提交举报（组员A）
+GET    /BBSForum/admin/report                         举报管理列表（组员A）
+POST   /BBSForum/admin/report/handle                  处理举报（组员A）
+GET    /BBSForum/notification/list                    通知列表（组员A）
+GET    /BBSForum/notification/detail?id=1             通知详情（组员A）
 ```
 
 ---
@@ -483,11 +574,11 @@ GET    /BBSForum/score/record                         积分记录
     |
     +--- 组长（帖子核心，发帖要选板块）
     |       |
-    |       +--- 组员A（置顶加精，依赖帖子表 is_top/is_elite 字段）
+    |       +--- 组员A（置顶加精+搜索+热度榜+举报+软删除，依赖帖子表）
     |
     +--- 组员D（需求信息，独立建表 demands + demand_replies + score_logs）
     |
-    +--- 组员B（用户系统，贯穿全程，注册登录是入口 + daily_checkins）
+    +--- 组员B（用户系统，贯穿全程，注册登录是入口 + daily_checkins + 鉴权拦截）
 ```
 
 ### 时间节点
@@ -497,7 +588,7 @@ GET    /BBSForum/score/record                         积分记录
 | 第1-2天 | 组长 | 架构搭建 | 项目模板、数据库SQL脚本、公共布局页面 |
 | 第2-5天 | 组员C | 板块先行 | 板块表建表完成，板块CRUD接口可用 |
 | 第3-8天 | 全员 | 并行开发 | 各自模块完整全栈开发 |
-| 第9-14天 | 组长+组员A | 创新功能+收尾 | 组长：关注/点赞/收藏/AI总结/实时数据等；组员A：热度榜 |
+| 第9-14天 | 全员 | 创新功能+收尾 | 组长：关注/点赞/收藏/AI总结/实时数据等；组员A：热度榜+举报系统+通知；组员B：头像上传+个人中心扩展；组员C：用户管理+仪表盘图表+后台UI |
 | 第15-16天 | 全员 | 联调测试+收尾 | 积分系统、封面生成、统一弹窗、bug修复 |
 
 ---
@@ -531,6 +622,8 @@ GET    /BBSForum/score/record                         积分记录
 → 管理员置顶/加精 → 编辑文章 → 发布需求悬赏
 → 关注作者 → 点赞/收藏帖子 → 查看热度榜
 → AI总结 → 积分排行 → 每日签到
+→ 举报帖子/回复 → 管理员审核处理 → 查看通知结果
+→ 管理员后台 → 用户管理 → 仪表盘图表 → 帖子管理搜索排序
 ```
 
 ### 每人准备
@@ -539,14 +632,14 @@ GET    /BBSForum/score/record                         积分记录
 - **演示1-2个亮点功能**：选最有交互感的
 - **技术亮点准备**：
   - 组长可讲：MVC架构设计、数据库关系设计、AJAX交互（关注/点赞不刷新页面）、AI接口集成、嵌入式Tomcat部署、SVG封面生成、统一弹窗系统
-  - 组员A可讲：多条件排序算法（置顶>加精>时间）、搜索LIKE匹配
-  - 组员B可讲：密码BCrypt加密存储、session鉴权机制、签到连续奖励算法
-  - 组员C可讲：RBAC权限控制（作者/管理员不同权限）、板块CRUD
+  - 组员A可讲：多条件排序算法（置顶>加精>时间）、搜索LIKE匹配+关键词检索、举报系统流转（用户举报→管理员审核→通知反馈）、软删除机制（逻辑删除保留数据）、通知轮询（AJAX定时检查未读数）
+  - 组员B可讲：密码BCrypt加密存储+旧明文自动升级、session鉴权机制（Session Fixation防护+AuthFilter拦截）、签到连续奖励算法（递增封顶+断签重置）、头像上传（multipart格式校验+UUID重命名+自动删除旧文件+实时预览）、个人中心扩展（我的帖子/悬赏/点赞/收藏四联查）、积分记录分页
+  - 组员C可讲：RBAC权限控制（作者/管理员不同权限）、板块CRUD、用户管理模块（角色切换/自我保护/删除校验）、Chart.js交互式仪表盘图表（AJAX加载JSON数据+环形图/折线图渲染）、帖子管理搜索排序（多条件筛选+翻页状态保持）
   - 组员D可讲：积分流转的事务处理（FOR UPDATE行锁）、需求状态管理
 
 ---
 
-> **文档更新日期**：2026-06-06
+> **文档更新日期**：2026-06-08
 > **说明**：本文档根据实际开发完成情况更新，所有功能均已实现并测试可用。
 
 ---
@@ -559,8 +652,11 @@ GET    /BBSForum/score/record                         积分记录
 |------|:--------:|------|
 | 发布帖子 | **+10** | 发帖成功后自动增加 |
 | 回复帖子 | **+2** | 回复成功后给回复者增加 |
-| 每日签到 | **+5** | 每天限一次，连续签到递增封顶+15 |
+| 每日签到 | **+5~15** | 每天限一次，连续签到递增封顶+15 |
 | 帖子被点赞 | **+3** | 有人点赞帖子，给帖子作者增加 |
+| 帖子被收藏 | **+5** | 有人收藏帖子，给帖子作者增加 |
+| 帖子被取消点赞 | **-3** | 取消点赞时扣除（防止刷分） |
+| 帖子被取消收藏 | **-5** | 取消收藏时扣除（防止刷分） |
 | 每日首次登录 | **+2** | 登录成功后自动发放 |
 | 回复被采纳 | **+悬赏分** | 需求发布者采纳回复后转给回复者 |
 | 发布需求 | **-悬赏分** | 发布悬赏时从发布者账户扣除 |

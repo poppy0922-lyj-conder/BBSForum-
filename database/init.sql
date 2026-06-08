@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS users (
     phone       VARCHAR(20)  DEFAULT '' COMMENT '联系方式',
     job_type    VARCHAR(50)  DEFAULT '' COMMENT '工作性质',
     job_location VARCHAR(100) DEFAULT '' COMMENT '工作地点',
+    avatar      VARCHAR(500) DEFAULT '' COMMENT '头像路径',
     role        ENUM('user','admin') NOT NULL DEFAULT 'user' COMMENT '角色',
     score       INT NOT NULL DEFAULT 0 COMMENT '积分',
     created_at  DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '注册时间'
