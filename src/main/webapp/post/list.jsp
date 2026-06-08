@@ -41,9 +41,9 @@
                 <c:param name="title" value="${post.title}"/>
             </c:url>
             <article class="bg-white rounded-lg shadow-sm hover:shadow-md transition-all border border-gray-100 overflow-hidden cursor-pointer mb-3" onclick="location.href='${pageContext.request.contextPath}/post/detail?id=${post.id}'">
-                <div class="flex">
+                <div class="flex items-start">
                     <!-- 封面图 -->
-                    <div class="w-52 h-32 shrink-0 overflow-hidden bg-gray-100">
+                    <div class="w-52 shrink-0 overflow-hidden bg-gray-100 self-start" style="height:130px">
                         <c:choose>
                             <c:when test="${not empty post.imageUrl}">
                                 <img src="${post.imageUrl}" alt="${post.title}" class="w-full h-full object-cover" onerror="this.src='${coverUrl}'">
