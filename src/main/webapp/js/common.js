@@ -469,6 +469,10 @@ const THEME_EFFECTS = {
         .post-card button i, .post-card button [class*="fa"] {
             font-family: FontAwesome !important;
         }
+        /* 帖子内所有 Font Awesome 图标保留（编辑/删除链接、相关推荐等） */
+        .post-card i, .post-card [class*="fa"] {
+            font-family: FontAwesome !important;
+        }
         /* 帖子底部元数据（作者、分类、点赞、收藏、浏览、时间）使用系统字体 */
         .post-card .items-center.gap-4.text-xs,
         .post-card .items-center.gap-4.text-xs * {
