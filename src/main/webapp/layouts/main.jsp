@@ -45,11 +45,15 @@
                 <c:when test="${not empty sessionScope.user}">
                     <span class="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold">${fn:substring(sessionScope.user.username, 0, 1)}</span>
                     <span class="text-sm text-gray-700">${sessionScope.user.username}</span>
+                    <a href="${pageContext.request.contextPath}/notification/list" class="relative text-gray-500 hover:text-blue-500 transition" title="通知">
+                        <i class="fa fa-bell text-lg"></i>
+                        <span id="unreadBadge" class="absolute -top-1.5 -right-2 bg-red-500 text-white text-[10px] rounded-full min-w-[16px] h-4 flex items-center justify-center px-1 hidden">0</span>
+                    </a>
                     <c:if test="${sessionScope.user.role == 'admin'}">
                         <a href="${pageContext.request.contextPath}/admin" class="text-xs px-3 py-1 border border-gray-300 rounded text-gray-600 hover:text-blue-500 no-underline">管理</a>
                     </c:if>
                     <a href="${pageContext.request.contextPath}/user/profile" class="text-xs px-3 py-1 border border-gray-300 rounded text-gray-600 hover:text-blue-500 no-underline">我的</a>
-                    <a href="${pageContext.request.contextPath}/" class="text-xs px-3 py-1 border border-gray-300 rounded text-gray-600 hover:text-blue-500 no-underline"><i class="fa fa-home"></i> 首页</a>
+                    <a href="${pageContext.request.contextPath}/logout" class="text-xs px-3 py-1 border border-gray-300 rounded text-gray-600 hover:text-blue-500 no-underline">退出</a>
                 </c:when>
                 <c:otherwise>
                     <a href="${pageContext.request.contextPath}/user/login" class="text-sm px-4 py-1.5 border border-gray-300 rounded text-gray-600 hover:text-blue-500 no-underline">登录</a>
@@ -279,6 +283,16 @@
                     </a>
                 </li>
                 <li>
+                    <a href="${pageContext.request.contextPath}/admin/report/list"
+                       class="flex items-start gap-2 px-4 py-3 no-underline ${adminActiveMenu == 'reports' ? 'bg-blue-50 text-blue-500 font-medium' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-500'}">
+                        <i class="fa fa-flag mt-0.5"></i>
+                        <div>
+                            <div class="text-sm">举报管理</div>
+                            <div class="text-[11px] ${adminActiveMenu == 'reports' ? 'text-blue-400' : 'text-gray-400'} font-normal mt-0.5">审核举报内容</div>
+                        </div>
+                    </a>
+                </li>
+                <li>
                     <a href="${pageContext.request.contextPath}/admin/users"
                        class="flex items-start gap-2 px-4 py-3 no-underline ${adminActiveMenu == 'users' or adminActiveMenu == 'user_edit' ? 'bg-blue-50 text-blue-500 font-medium' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-500'}">
                         <i class="fa fa-users mt-0.5"></i>
@@ -360,6 +374,7 @@ window.alert = function(msg) {
         document.getElementById('modalBtnCancel').style.display = 'none';
         document.getElementById('modalBtnConfirm').innerHTML = '<i class="fa fa-check"></i> 确定';
         document.getElementById('modalBtnConfirm').className = 'flex-1 py-3 text-sm font-medium text-blue-600 hover:bg-blue-50 transition cursor-pointer border-none bg-transparent';
+        document.getElementById('modalBtnConfirm').onclick = function() { modalResolve(true); };
         overlay.style.display = 'flex';
     });
 };
@@ -378,6 +393,7 @@ function showConfirm(msg) {
         document.getElementById('modalBtnCancel').onclick = function() { modalResolve(false); };
         document.getElementById('modalBtnConfirm').innerHTML = '<i class="fa fa-check"></i> 确定';
         document.getElementById('modalBtnConfirm').className = 'flex-1 py-3 text-sm font-medium text-orange-600 hover:bg-orange-50 transition cursor-pointer border-none bg-transparent border-l border-gray-100';
+        document.getElementById('modalBtnConfirm').onclick = function() { modalResolve(true); };
         overlay.style.display = 'flex';
     });
 }
@@ -394,6 +410,33 @@ function showError(msg) {
         document.getElementById('modalBtnCancel').style.display = 'none';
         document.getElementById('modalBtnConfirm').innerHTML = '<i class="fa fa-check"></i> 知道了';
         document.getElementById('modalBtnConfirm').className = 'flex-1 py-3 text-sm font-medium text-blue-600 hover:bg-blue-50 transition cursor-pointer border-none bg-transparent';
+        document.getElementById('modalBtnConfirm').onclick = function() { modalResolve(true); };
+        overlay.style.display = 'flex';
+    });
+}
+
+// 自定义内容弹窗（支持HTML内容，返回 Promise）
+function showCustomModal(title, contentHtml, options) {
+    return new Promise(function(resolve) {
+        _modalResolve = resolve;
+        var overlay = document.getElementById('modalOverlay');
+        document.getElementById('modalIconWrap').className = 'w-14 h-14 mx-auto mb-3 rounded-full flex items-center justify-center bg-blue-50 border border-blue-200';
+        document.getElementById('modalIcon').className = 'fa fa-info-circle text-2xl text-blue-500';
+        document.getElementById('modalTitle').textContent = title || '提示';
+        document.getElementById('modalMsg').innerHTML = contentHtml;
+        document.getElementById('modalBtnCancel').style.display = 'block';
+        document.getElementById('modalBtnCancel').className = 'flex-1 py-3 text-sm text-gray-500 hover:bg-gray-50 transition cursor-pointer border-none bg-transparent';
+        document.getElementById('modalBtnCancel').onclick = function() { modalResolve(false); };
+        var confirmText = (options && options.confirmText) || '确定';
+        document.getElementById('modalBtnConfirm').innerHTML = '<i class="fa fa-check"></i> ' + confirmText;
+        document.getElementById('modalBtnConfirm').className = 'flex-1 py-3 text-sm font-medium text-blue-600 hover:bg-blue-50 transition cursor-pointer border-none bg-transparent border-l border-gray-100';
+        document.getElementById('modalBtnConfirm').onclick = function() {
+            if (options && typeof options.onConfirm === 'function') {
+                options.onConfirm(function() { modalResolve(true); });
+            } else {
+                modalResolve(true);
+            }
+        };
         overlay.style.display = 'flex';
     });
 }
@@ -404,6 +447,27 @@ document.getElementById('modalOverlay').addEventListener('click', function(e) {
         modalResolve(false);
     }
 });
+
+// 通知未读数轮询
+(function() {
+    function fetchUnreadCount() {
+        fetch('${pageContext.request.contextPath}/notification/unreadCount')
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                var badge = document.getElementById('unreadBadge');
+                if (badge) {
+                    if (data.count > 0) {
+                        badge.textContent = data.count > 99 ? '99+' : data.count;
+                        badge.classList.remove('hidden');
+                    } else {
+                        badge.classList.add('hidden');
+                    }
+                }
+            }).catch(function() {});
+    }
+    fetchUnreadCount();
+    setInterval(fetchUnreadCount, 60000);
+})();
 </script>
 </body>
 </html>

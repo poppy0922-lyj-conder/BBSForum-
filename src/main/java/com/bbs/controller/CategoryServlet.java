@@ -124,7 +124,7 @@ public class CategoryServlet extends HttpServlet {
 
     /** 统计指定板块帖子总数 */
     private int countPostsByCategory(int categoryId) {
-        String sql = "SELECT COUNT(*) FROM posts WHERE category_id = ?";
+        String sql = "SELECT COUNT(*) FROM posts WHERE category_id = ? AND is_deleted = 0";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, categoryId);
@@ -149,7 +149,7 @@ public class CategoryServlet extends HttpServlet {
                      "FROM posts p " +
                      "JOIN users u ON p.user_id = u.id " +
                      "JOIN categories c ON p.category_id = c.id " +
-                     "WHERE p.category_id = ? " +
+                     "WHERE p.category_id = ? AND p.is_deleted = 0 " +
                      "ORDER BY p.is_top DESC, p.is_elite DESC, p.created_at DESC " +
                      "LIMIT ? OFFSET ?";
 

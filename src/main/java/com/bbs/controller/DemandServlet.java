@@ -276,7 +276,7 @@ public class DemandServlet extends HttpServlet {
             int demandUserId = 0;
             int demandScore = 0;
             String demandStatus = "";
-            String checkSql = "SELECT user_id, score, status FROM demands WHERE id = ? FOR UPDATE";
+            String checkSql = "SELECT user_id, score, status FROM demands WHERE id = ? AND is_deleted = 0 FOR UPDATE";
             try (PreparedStatement ps = conn.prepareStatement(checkSql)) {
                 ps.setInt(1, demandId);
                 try (ResultSet rs = ps.executeQuery()) {
@@ -302,7 +302,7 @@ public class DemandServlet extends HttpServlet {
 
             // 2. 查询回复作者
             int replyUserId = 0;
-            String replySql = "SELECT user_id FROM demand_replies WHERE id = ?";
+            String replySql = "SELECT user_id FROM demand_replies WHERE id = ? AND is_deleted = 0";
             try (PreparedStatement ps = conn.prepareStatement(replySql)) {
                 ps.setInt(1, replyId);
                 try (ResultSet rs = ps.executeQuery()) {
@@ -385,7 +385,7 @@ public class DemandServlet extends HttpServlet {
         Map<String, Object> user = (Map<String, Object>) userObj;
         int userId = ((Number) user.get("id")).intValue();
 
-        String sql = "SELECT id, title, content, score, status, user_id FROM demands WHERE id = ?";
+        String sql = "SELECT id, title, content, score, status, user_id FROM demands WHERE id = ? AND is_deleted = 0";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, demandId);
@@ -480,7 +480,7 @@ public class DemandServlet extends HttpServlet {
 
         String sql = "SELECT d.id, d.title, d.content, d.score, d.status, d.best_reply_id, d.created_at, " +
                      "u.username AS author_name, u.id AS user_id " +
-                     "FROM demands d JOIN users u ON d.user_id = u.id WHERE d.id = ?";
+                     "FROM demands d JOIN users u ON d.user_id = u.id WHERE d.id = ? AND d.is_deleted = 0";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, demandId);
@@ -512,7 +512,7 @@ public class DemandServlet extends HttpServlet {
         List<Map<String, Object>> replyList = new ArrayList<>();
         String replySql = "SELECT r.id, r.content, r.created_at, u.username AS author_name, u.id AS user_id " +
                           "FROM demand_replies r JOIN users u ON r.user_id = u.id " +
-                          "WHERE r.demand_id = ? ORDER BY r.created_at ASC";
+                          "WHERE r.demand_id = ? AND r.is_deleted = 0 ORDER BY r.created_at ASC";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(replySql)) {
             ps.setInt(1, demandId);
@@ -578,7 +578,7 @@ public class DemandServlet extends HttpServlet {
     private int countDemands() {
         try (Connection conn = DBUtil.getConnection();
              Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM demands")) {
+             ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM demands WHERE is_deleted = 0")) {
             return rs.next() ? rs.getInt(1) : 0;
         } catch (SQLException e) {
             LOG.log(Level.SEVERE, "统计需求数失败", e);
@@ -592,6 +592,7 @@ public class DemandServlet extends HttpServlet {
         String sql = "SELECT d.id, d.title, d.content, d.score, d.status, d.created_at, d.user_id, " +
                      "u.username AS author_name " +
                      "FROM demands d JOIN users u ON d.user_id = u.id " +
+                     "WHERE d.is_deleted = 0 " +
                      "ORDER BY d.created_at DESC LIMIT ? OFFSET ?";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
