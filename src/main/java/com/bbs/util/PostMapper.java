@@ -30,6 +30,7 @@ public class PostMapper {
         post.put("authorName", rs.getString("author_name"));
         post.put("categoryName", rs.getString("category_name"));
         post.put("imageUrl", rs.getString("image_url") == null ? "" : rs.getString("image_url"));
+        post.put("authorAvatar", rs.getString("author_avatar") == null ? "" : rs.getString("author_avatar"));
         String ai = rs.getString("ai_summary");
         post.put("aiSummary", ai == null ? "" : ai);
         return post;

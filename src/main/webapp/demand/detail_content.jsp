@@ -57,7 +57,14 @@
 
         <div class="flex items-center gap-5 text-sm text-gray-400 pb-5 border-b border-gray-100 flex-wrap">
             <span class="flex items-center gap-1.5">
-                <span class="w-7 h-7 bg-orange-400 text-white rounded-full flex items-center justify-center text-xs font-bold">${fn:substring(demand.authorName, 0, 1)}</span>
+                <c:choose>
+                    <c:when test="${not empty demand.authorAvatar}">
+                        <img src="${demand.authorAvatar}" alt="" class="w-7 h-7 rounded-full object-cover">
+                    </c:when>
+                    <c:otherwise>
+                        <span class="w-7 h-7 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold">${fn:substring(demand.authorName, 0, 1)}</span>
+                    </c:otherwise>
+                </c:choose>
                 <span class="text-gray-700 font-medium">${demand.authorName}</span>
             </span>
             <span><i class="fa fa-clock-o mr-1"></i> ${demand.createdAt}</span>
@@ -104,7 +111,14 @@
                 <c:forEach var="reply" items="${replyList}" varStatus="status">
                     <div class="bg-white rounded-lg shadow-sm border border-gray-100 p-5 <c:if test='${reply.id == demand.bestReplyId}'>ring-2 ring-orange-300 border-orange-200</c:if>">
                         <div class="flex items-center gap-3 mb-3">
-                            <span class="w-7 h-7 bg-green-500 text-white rounded-full flex items-center justify-center text-xs font-bold">${fn:substring(reply.authorName, 0, 1)}</span>
+                            <c:choose>
+                                <c:when test="${not empty reply.authorAvatar}">
+                                    <img src="${reply.authorAvatar}" alt="" class="w-7 h-7 rounded-full object-cover">
+                                </c:when>
+                                <c:otherwise>
+                                    <span class="w-7 h-7 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold">${fn:substring(reply.authorName, 0, 1)}</span>
+                                </c:otherwise>
+                            </c:choose>
                             <span class="text-sm font-medium text-gray-700">${reply.authorName}</span>
                             <span class="text-xs text-gray-400">${reply.createdAt}</span>
                             <c:if test="${reply.id == demand.bestReplyId}">
@@ -180,7 +194,14 @@
             <div>
                 <div class="text-xs text-gray-400 mb-1">发布者</div>
                 <div class="flex items-center gap-2">
-                    <span class="w-7 h-7 bg-orange-400 text-white rounded-full flex items-center justify-center text-xs font-bold">${fn:substring(demand.authorName, 0, 1)}</span>
+                    <c:choose>
+                        <c:when test="${not empty demand.authorAvatar}">
+                            <img src="${demand.authorAvatar}" alt="" class="w-7 h-7 rounded-full object-cover">
+                        </c:when>
+                        <c:otherwise>
+                            <span class="w-7 h-7 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold">${fn:substring(demand.authorName, 0, 1)}</span>
+                        </c:otherwise>
+                    </c:choose>
                     <span class="text-sm font-medium text-gray-700">${demand.authorName}</span>
                 </div>
             </div>

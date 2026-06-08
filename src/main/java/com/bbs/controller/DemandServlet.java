@@ -479,7 +479,7 @@ public class DemandServlet extends HttpServlet {
         }
 
         String sql = "SELECT d.id, d.title, d.content, d.score, d.status, d.best_reply_id, d.created_at, " +
-                     "u.username AS author_name, u.id AS user_id " +
+                     "u.username AS author_name, u.avatar AS author_avatar, u.id AS user_id " +
                      "FROM demands d JOIN users u ON d.user_id = u.id WHERE d.id = ? AND d.is_deleted = 0";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -495,6 +495,7 @@ public class DemandServlet extends HttpServlet {
                     demand.put("bestReplyId", rs.getObject("best_reply_id"));
                     demand.put("createdAt", rs.getTimestamp("created_at"));
                     demand.put("authorName", rs.getString("author_name"));
+                    demand.put("authorAvatar", rs.getString("author_avatar") == null ? "" : rs.getString("author_avatar"));
                     demand.put("userId", rs.getInt("user_id"));
                     request.setAttribute("demand", demand);
                 } else {
@@ -510,7 +511,7 @@ public class DemandServlet extends HttpServlet {
 
         // 查询回复列表
         List<Map<String, Object>> replyList = new ArrayList<>();
-        String replySql = "SELECT r.id, r.content, r.created_at, u.username AS author_name, u.id AS user_id " +
+        String replySql = "SELECT r.id, r.content, r.created_at, u.username AS author_name, u.avatar AS author_avatar, u.id AS user_id " +
                           "FROM demand_replies r JOIN users u ON r.user_id = u.id " +
                           "WHERE r.demand_id = ? AND r.is_deleted = 0 ORDER BY r.created_at ASC";
         try (Connection conn = DBUtil.getConnection();
@@ -523,6 +524,7 @@ public class DemandServlet extends HttpServlet {
                     reply.put("content", rs.getString("content"));
                     reply.put("createdAt", rs.getTimestamp("created_at"));
                     reply.put("authorName", rs.getString("author_name"));
+                    reply.put("authorAvatar", rs.getString("author_avatar") == null ? "" : rs.getString("author_avatar"));
                     reply.put("userId", rs.getInt("user_id"));
                     replyList.add(reply);
                 }
@@ -590,7 +592,7 @@ public class DemandServlet extends HttpServlet {
         List<Map<String, Object>> list = new ArrayList<>();
         int offset = (page - 1) * PAGE_SIZE;
         String sql = "SELECT d.id, d.title, d.content, d.score, d.status, d.created_at, d.user_id, " +
-                     "u.username AS author_name " +
+                     "u.username AS author_name, u.avatar AS author_avatar " +
                      "FROM demands d JOIN users u ON d.user_id = u.id " +
                      "WHERE d.is_deleted = 0 " +
                      "ORDER BY d.created_at DESC LIMIT ? OFFSET ?";
@@ -608,6 +610,7 @@ public class DemandServlet extends HttpServlet {
                     m.put("status", rs.getString("status"));
                     m.put("createdAt", rs.getObject("created_at"));
                     m.put("authorName", rs.getString("author_name"));
+                    m.put("authorAvatar", rs.getString("author_avatar") == null ? "" : rs.getString("author_avatar"));
                     m.put("userId", rs.getInt("user_id"));
                     list.add(m);
                 }

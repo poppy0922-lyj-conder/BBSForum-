@@ -108,7 +108,7 @@ public class PostServlet extends HttpServlet {
         // 2. 查询帖子
         String postSql = "SELECT p.id, p.title, p.content, p.image_url, p.ai_summary, p.is_top, p.is_elite, " +
                          "p.keywords, p.view_count, p.like_count, p.favorite_count, p.user_id, p.category_id, p.created_at, p.updated_at, " +
-                         "u.username AS author_name, c.name AS category_name " +
+                         "u.username AS author_name, u.avatar AS author_avatar, c.name AS category_name " +
                          "FROM posts p " +
                          "JOIN users u ON p.user_id = u.id " +
                          "JOIN categories c ON p.category_id = c.id " +
@@ -135,6 +135,7 @@ public class PostServlet extends HttpServlet {
                     post.put("categoryId", rs.getInt("category_id"));
                     post.put("createdAt", rs.getTimestamp("created_at").toString());
                     post.put("authorName", rs.getString("author_name"));
+                    post.put("authorAvatar", rs.getString("author_avatar") == null ? "" : rs.getString("author_avatar"));
                     post.put("categoryName", rs.getString("category_name"));
                 }
             }
@@ -176,7 +177,7 @@ public class PostServlet extends HttpServlet {
 
         // 3. 查询回复列表
         List<Map<String, Object>> replyList = new ArrayList<>();
-        String replySql = "SELECT r.id, r.content, r.created_at, u.username AS author_name, u.id AS user_id " +
+        String replySql = "SELECT r.id, r.content, r.created_at, u.username AS author_name, u.avatar AS author_avatar, u.id AS user_id " +
                           "FROM replies r JOIN users u ON r.user_id = u.id " +
                           "WHERE r.post_id = ? AND r.is_deleted = 0 ORDER BY r.created_at ASC";
         try (Connection conn = DBUtil.getConnection();
@@ -190,6 +191,7 @@ public class PostServlet extends HttpServlet {
                     reply.put("content", rs.getString("content"));
                     reply.put("createdAt", rs.getTimestamp("created_at").toString());
                     reply.put("authorName", rs.getString("author_name"));
+                    reply.put("authorAvatar", rs.getString("author_avatar") == null ? "" : rs.getString("author_avatar"));
                     reply.put("userId", rs.getInt("user_id"));
                     reply.put("floor", floor++);
                     replyList.add(reply);
@@ -611,7 +613,7 @@ public class PostServlet extends HttpServlet {
         String like = "%" + keyword + "%";
         String sql = "SELECT p.id, p.title, p.image_url, p.content AS summary, p.ai_summary, " +
                      "p.is_top, p.is_elite, p.view_count, p.like_count, p.favorite_count, p.created_at, " +
-                     "u.username AS author_name, c.name AS category_name " +
+                     "u.username AS author_name, u.avatar AS author_avatar, c.name AS category_name " +
                      "FROM posts p " +
                      "JOIN users u ON p.user_id = u.id " +
                      "JOIN categories c ON p.category_id = c.id " +

@@ -48,7 +48,14 @@
         </c:if>
         <div class="flex items-center gap-5 text-sm text-gray-400 pb-5 border-b border-gray-100 flex-wrap">
             <span class="flex items-center gap-1.5">
-                <span class="w-7 h-7 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold">${fn:substring(post.authorName, 0, 1)}</span>
+                <c:choose>
+                    <c:when test="${not empty post.authorAvatar}">
+                        <img src="${post.authorAvatar}" alt="" class="w-7 h-7 rounded-full object-cover">
+                    </c:when>
+                    <c:otherwise>
+                        <span class="w-7 h-7 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold">${fn:substring(post.authorName, 0, 1)}</span>
+                    </c:otherwise>
+                </c:choose>
                 <span class="text-gray-700 font-medium">${post.authorName}</span>
                 <c:if test="${not empty sessionScope.user && sessionScope.user.id != post.userId}">
                     <button onclick="toggleFollow(${post.userId}, this)" class="ml-1 text-xs px-2 py-0.5 rounded border transition cursor-pointer ${userFollowed ? 'bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100' : 'text-gray-500 border-gray-300 hover:bg-gray-100'}">
@@ -139,7 +146,14 @@
                 <c:forEach var="reply" items="${replyList}">
                     <div class="bg-white rounded-lg shadow-sm border border-gray-100 p-5">
                         <div class="flex items-center gap-3 mb-3">
-                            <span class="w-7 h-7 bg-green-500 text-white rounded-full flex items-center justify-center text-xs font-bold">${fn:substring(reply.authorName, 0, 1)}</span>
+                            <c:choose>
+                                <c:when test="${not empty reply.authorAvatar}">
+                                    <img src="${reply.authorAvatar}" alt="" class="w-7 h-7 rounded-full object-cover">
+                                </c:when>
+                                <c:otherwise>
+                                    <span class="w-7 h-7 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold">${fn:substring(reply.authorName, 0, 1)}</span>
+                                </c:otherwise>
+                            </c:choose>
                             <span class="text-sm font-medium text-gray-700">${reply.authorName}</span>
                             <span class="text-xs text-gray-400">${reply.createdAt}</span>
                             <span class="text-xs text-gray-300 ml-auto">#${reply.floor}</span>
