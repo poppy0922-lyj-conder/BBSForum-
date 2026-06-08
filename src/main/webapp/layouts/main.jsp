@@ -28,7 +28,8 @@
             </a>
         </div>
         <div class="flex items-center gap-2">
-            <!-- 搜索框 -->
+            <!-- 搜索框（登录/注册页隐藏） -->
+            <c:if test="${empty hideHeaderExtra}">
             <form action="${pageContext.request.contextPath}/post/search" method="get" class="flex items-center">
                 <input type="text" name="keyword" value="${param.keyword}" placeholder="搜索帖子..." class="w-48 px-3 py-1.5 text-sm border border-gray-300 rounded-l focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-200" maxlength="50">
                 <button type="submit" class="px-3 py-1.5 text-sm bg-gray-100 border border-l-0 border-gray-300 rounded-r text-gray-500 hover:bg-blue-500 hover:text-white hover:border-blue-500 transition cursor-pointer">
@@ -39,11 +40,23 @@
             <a href="${pageContext.request.contextPath}/hot" class="flex items-center gap-1 px-3 py-1.5 text-sm text-orange-500 bg-orange-50 border border-orange-200 rounded hover:bg-orange-100 no-underline transition">
                 <i class="fa fa-fire"></i> 热度榜
             </a>
+            </c:if>
         </div>
         <div class="flex items-center gap-3">
             <c:choose>
                 <c:when test="${not empty sessionScope.user}">
-                    <span class="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold">${fn:substring(sessionScope.user.username, 0, 1)}</span>
+                    <c:choose>
+                        <c:when test="${not empty sessionScope.user.avatar}">
+                            <a href="${pageContext.request.contextPath}/user/profile" class="block">
+                                <img src="${sessionScope.user.avatar}" alt="头像" class="w-8 h-8 rounded-full object-cover border-2 border-gray-100">
+                            </a>
+                        </c:when>
+                        <c:otherwise>
+                            <a href="${pageContext.request.contextPath}/user/profile" class="block">
+                                <span class="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold">${fn:substring(sessionScope.user.username, 0, 1)}</span>
+                            </a>
+                        </c:otherwise>
+                    </c:choose>
                     <span class="text-sm text-gray-700">${sessionScope.user.username}</span>
                     <a href="${pageContext.request.contextPath}/notification/list" class="relative text-gray-500 hover:text-blue-500 transition" title="通知">
                         <i class="fa fa-bell text-lg"></i>

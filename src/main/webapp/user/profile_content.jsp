@@ -24,6 +24,27 @@
             <h3 class="text-base font-semibold text-gray-800 mb-4 flex items-center gap-2">
                 <i class="fa fa-id-card-o text-blue-500"></i> 基本信息
             </h3>
+
+            <!-- 头像展示 -->
+            <div class="flex items-center gap-4 mb-5 pb-5 border-b border-gray-100">
+                <div class="relative">
+                    <c:choose>
+                        <c:when test="${not empty user.avatar}">
+                            <img src="${user.avatar}" alt="头像" class="w-16 h-16 rounded-full object-cover border-2 border-gray-100">
+                        </c:when>
+                        <c:otherwise>
+                            <div class="w-16 h-16 rounded-full bg-blue-500 text-white flex items-center justify-center text-xl font-bold border-2 border-gray-100">
+                                ${fn:substring(user.username, 0, 1)}
+                            </div>
+                        </c:otherwise>
+                    </c:choose>
+                </div>
+                <div>
+                    <div class="text-base font-semibold text-gray-900">${user.username}</div>
+                    <div class="text-xs text-gray-400 mt-0.5">${user.role == 'admin' ? '管理员' : '普通用户'}</div>
+                </div>
+            </div>
+
             <div class="space-y-3 text-sm">
                 <div class="flex border-b border-gray-100 pb-3">
                     <span class="w-24 text-gray-500 shrink-0">用户名</span>
