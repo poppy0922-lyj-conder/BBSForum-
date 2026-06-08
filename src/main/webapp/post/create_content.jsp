@@ -141,7 +141,10 @@
                     <!-- 预览作者行 -->
                     <div class="flex items-center gap-3 text-xs text-gray-400 pb-3 border-b border-gray-100 mb-3">
                         <span class="flex items-center gap-1.5">
-                            <span class="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-[10px] font-bold">${fn:substring(sessionScope.user.username, 0, 1)}</span>
+                            <img src="${sessionScope.user.avatar}" alt=""
+                                 class="w-6 h-6 rounded-full object-cover ${empty sessionScope.user.avatar ? 'hidden' : ''}"
+                                 onerror="this.classList.add('hidden');this.nextElementSibling.classList.remove('hidden')">
+                            <span class="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-[10px] font-bold ${not empty sessionScope.user.avatar ? 'hidden' : ''}">${fn:substring(sessionScope.user.username, 0, 1)}</span>
                             <span class="text-gray-700 font-medium">${sessionScope.user.username}</span>
                         </span>
                         <span id="preCategoryName" class="text-gray-400">未选择板块</span>
