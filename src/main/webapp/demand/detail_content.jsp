@@ -133,8 +133,8 @@
                             </div>
                         </c:if>
 
-                        <!-- 采纳按钮 -->
-                        <c:if test="${sessionScope.user.id == demand.userId && demand.status == 'open' && reply.id != demand.bestReplyId}">
+                        <!-- 采纳按钮：发布者本人回复不显示 -->
+                        <c:if test="${sessionScope.user.id == demand.userId && demand.status == 'open' && reply.id != demand.bestReplyId && sessionScope.user.id != reply.userId}">
                             <div class="mt-3 pt-3 border-t border-gray-50">
                                 <button onclick="showAcceptModal(${demand.id}, ${reply.id}, ${demand.score})"
                                    class="inline-flex items-center gap-1 px-3 py-1.5 text-xs text-orange-600 bg-orange-50 border border-orange-200 rounded hover:bg-orange-100 transition cursor-pointer">
@@ -297,25 +297,21 @@ function doAccept() {
     btn.disabled = true;
     btn.innerHTML = '<i class="fa fa-spinner fa-pulse"></i> 处理中...';
 
-    fetch('${pageContext.request.contextPath}/demand/accept', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: 'demandId=' + acceptData.demandId + '&replyId=' + acceptData.replyId
-    }).then(function(r) {
-        if (r.ok) {
-            location.reload();
-        } else {
-            alert('操作失败，请重试');
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fa fa-check"></i> 确定采纳';
-            closeAcceptModal();
-        }
-    }).catch(function() {
-        alert('网络错误');
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fa fa-check"></i> 确定采纳';
-        closeAcceptModal();
-    });
+    // 用表单提交（POST），让浏览器自动处理后端重定向显示错误/成功信息
+    var form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '${pageContext.request.contextPath}/demand/accept';
+    form.style.display = 'none';
+    var input1 = document.createElement('input');
+    input1.name = 'demandId';
+    input1.value = acceptData.demandId;
+    var input2 = document.createElement('input');
+    input2.name = 'replyId';
+    input2.value = acceptData.replyId;
+    form.appendChild(input1);
+    form.appendChild(input2);
+    document.body.appendChild(form);
+    form.submit();
 }
 
 // 点击遮罩层关闭
