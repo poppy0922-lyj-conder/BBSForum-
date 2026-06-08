@@ -16,7 +16,7 @@
 <div class="flex-1 min-w-0">
 
 <!-- 帖子主体 -->
-<article class="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden mb-6">
+<article class="post-card bg-white rounded-lg shadow-sm border border-gray-100 mb-6">
     <c:url value="/cover/${post.id}" var="coverUrl">
         <c:param name="title" value="${post.title}"/>
     </c:url>
@@ -48,14 +48,12 @@
         </c:if>
         <div class="flex items-center gap-5 text-sm text-gray-400 pb-5 border-b border-gray-100 flex-wrap">
             <span class="flex items-center gap-1.5">
-                <c:choose>
-                    <c:when test="${not empty post.authorAvatar}">
-                        <img src="${post.authorAvatar}" alt="" class="w-7 h-7 rounded-full object-cover">
-                    </c:when>
-                    <c:otherwise>
-                        <span class="w-7 h-7 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold">${fn:substring(post.authorName, 0, 1)}</span>
-                    </c:otherwise>
-                </c:choose>
+                <span class="relative inline-flex">
+                    <img src="${post.authorAvatar}" alt=""
+                         class="w-7 h-7 rounded-full object-cover ${empty post.authorAvatar ? 'hidden' : ''}"
+                         onerror="this.classList.add('hidden');this.nextElementSibling.classList.remove('hidden')">
+                    <span class="w-7 h-7 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold ${not empty post.authorAvatar ? 'hidden' : ''}">${fn:substring(post.authorName, 0, 1)}</span>
+                </span>
                 <span class="text-gray-700 font-medium">${post.authorName}</span>
                 <c:if test="${not empty sessionScope.user && sessionScope.user.id != post.userId}">
                     <button onclick="toggleFollow(${post.userId}, this)" class="ml-1 text-xs px-2 py-0.5 rounded border transition cursor-pointer ${userFollowed ? 'bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100' : 'text-gray-500 border-gray-300 hover:bg-gray-100'}">
@@ -144,16 +142,14 @@
         <c:otherwise>
             <div class="space-y-3">
                 <c:forEach var="reply" items="${replyList}">
-                    <div class="bg-white rounded-lg shadow-sm border border-gray-100 p-5">
+                    <div class="post-card bg-white rounded-lg shadow-sm border border-gray-100 p-5">
                         <div class="flex items-center gap-3 mb-3">
-                            <c:choose>
-                                <c:when test="${not empty reply.authorAvatar}">
-                                    <img src="${reply.authorAvatar}" alt="" class="w-7 h-7 rounded-full object-cover">
-                                </c:when>
-                                <c:otherwise>
-                                    <span class="w-7 h-7 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold">${fn:substring(reply.authorName, 0, 1)}</span>
-                                </c:otherwise>
-                            </c:choose>
+                            <span class="relative inline-flex">
+                                <img src="${reply.authorAvatar}" alt=""
+                                     class="w-7 h-7 rounded-full object-cover ${empty reply.authorAvatar ? 'hidden' : ''}"
+                                     onerror="this.classList.add('hidden');this.nextElementSibling.classList.remove('hidden')">
+                                <span class="w-7 h-7 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold ${not empty reply.authorAvatar ? 'hidden' : ''}">${fn:substring(reply.authorName, 0, 1)}</span>
+                            </span>
                             <span class="text-sm font-medium text-gray-700">${reply.authorName}</span>
                             <span class="text-xs text-gray-400">${reply.createdAt}</span>
                             <span class="text-xs text-gray-300 ml-auto">#${reply.floor}</span>
@@ -176,8 +172,7 @@
 <!-- 回复表单 -->
 <c:choose>
     <c:when test="${not empty sessionScope.user}">
-        <section class="bg-white rounded-lg shadow-sm border border-gray-100 p-6">
-            <h3 class="text-base font-semibold text-gray-900 mb-4"><i class="fa fa-reply mr-1"></i> 发表回复</h3>
+        <section class="post-card bg-white rounded-lg shadow-sm border border-gray-100 p-6">
             <form action="${pageContext.request.contextPath}/post/reply" method="post">
                 <input type="hidden" name="postId" value="${post.id}">
                 <textarea name="content" rows="4" placeholder="写下你的回复..." class="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-200 resize-none mb-4" required></textarea>
@@ -214,7 +209,7 @@
 <!-- ========== 右侧相关推荐 ========== -->
 <c:if test="${not empty relatedPosts}">
 <aside class="w-64 shrink-0 hidden lg:block">
-    <div class="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden sticky top-[72px]">
+    <div class="post-card bg-white rounded-lg shadow-sm border border-gray-100 sticky top-[72px]">
         <div class="px-4 py-3 border-b border-gray-100">
             <h3 class="text-sm font-semibold text-gray-900"><i class="fa fa-lightbulb-o mr-1 text-yellow-500"></i> 相关推荐</h3>
         </div>

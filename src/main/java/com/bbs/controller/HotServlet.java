@@ -72,7 +72,7 @@ public class HotServlet extends HttpServlet {
         String sql = "SELECT p.id, p.title, p.image_url, " +
                      "p.content AS summary, p.ai_summary, " +
                      "p.is_top, p.is_elite, p.view_count, p.like_count, p.favorite_count, p.created_at, " +
-                     "u.username AS author_name, c.name AS category_name " +
+                     "u.username AS author_name, u.avatar AS author_avatar, c.name AS category_name " +
                      "FROM posts p " +
                      "JOIN users u ON p.user_id = u.id " +
                      "JOIN categories c ON p.category_id = c.id " +

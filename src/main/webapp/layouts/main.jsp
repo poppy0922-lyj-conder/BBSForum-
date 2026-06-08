@@ -2,7 +2,7 @@
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-theme="default">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,6 +10,9 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script>tailwind.config={theme:{extend:{colors:{primary:'#1677ff',danger:'#ff4d4f',warn:'#fa8c16',elite:'#eb2f96'}}}}</script>
     <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <!-- 字体：Noto Sans SC(科技) + ZCOOL KuaiLe(涂鸦) -->
+    <link rel="preconnect" href="https://fonts.font.im">
+    <link href="https://fonts.font.im/css2?family=Noto+Sans+SC:wght@400;500;600;700&family=ZCOOL+KuaiLe&family=Orbitron:wght@400;500;600;700;800;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 </head>
 <body class="bg-gray-100 min-h-screen flex flex-col">
 
@@ -17,12 +20,6 @@
 <header class="bg-white shadow-sm sticky top-0 z-50 border-b border-gray-200">
     <div class="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
         <div class="flex items-center gap-3">
-            <c:if test="${adminLayout}">
-                <a href="${pageContext.request.contextPath}/" class="flex items-center gap-1 text-sm text-gray-500 hover:text-blue-500 no-underline transition" title="返回首页">
-                    <i class="fa fa-home"></i> 返回首页
-                </a>
-                <span class="text-gray-300">|</span>
-            </c:if>
             <a href="${pageContext.request.contextPath}/" class="text-xl font-bold text-red-500 no-underline">
                 <i class="fa fa-fire"></i> BBS技术社区
             </a>
@@ -41,22 +38,30 @@
                 <i class="fa fa-fire"></i> 热度榜
             </a>
             </c:if>
+            <!-- 主题切换器 -->
+            <div class="flex items-center border-l border-gray-200 pl-2 ml-1 gap-1">
+                <button class="theme-btn" data-theme="default" onclick="applyTheme('default')" title="默认风">
+                    <i class="fa fa-sun-o"></i>
+                </button>
+                <button class="theme-btn" data-theme="tech" onclick="applyTheme('tech')" title="科技风">
+                    <i class="fa fa-moon-o"></i>
+                </button>
+                <button class="theme-btn" data-theme="doodle" onclick="applyTheme('doodle')" title="涂鸦风">
+                    <i class="fa fa-pencil-square-o"></i>
+                </button>
+            </div>
         </div>
         <div class="flex items-center gap-3">
             <c:choose>
                 <c:when test="${not empty sessionScope.user}">
-                    <c:choose>
-                        <c:when test="${not empty sessionScope.user.avatar}">
-                            <a href="${pageContext.request.contextPath}/user/profile" class="block">
-                                <img src="${sessionScope.user.avatar}" alt="头像" class="w-8 h-8 rounded-full object-cover border-2 border-gray-100">
-                            </a>
-                        </c:when>
-                        <c:otherwise>
-                            <a href="${pageContext.request.contextPath}/user/profile" class="block">
-                                <span class="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold">${fn:substring(sessionScope.user.username, 0, 1)}</span>
-                            </a>
-                        </c:otherwise>
-                    </c:choose>
+                    <a href="${pageContext.request.contextPath}/user/profile" class="block relative">
+                        <span class="relative inline-flex">
+                            <img src="${sessionScope.user.avatar}" alt="头像"
+                                 class="w-8 h-8 rounded-full object-cover border-2 border-gray-100 ${empty sessionScope.user.avatar ? 'hidden' : ''}"
+                                 onerror="this.classList.add('hidden');this.nextElementSibling.classList.remove('hidden')">
+                            <span class="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold border-2 border-gray-100 ${not empty sessionScope.user.avatar ? 'hidden' : ''}">${fn:substring(sessionScope.user.username, 0, 1)}</span>
+                        </span>
+                    </a>
                     <span class="text-sm text-gray-700">${sessionScope.user.username}</span>
                     <a href="${pageContext.request.contextPath}/notification/list" class="relative text-gray-500 hover:text-blue-500 transition" title="通知">
                         <i class="fa fa-bell text-lg"></i>

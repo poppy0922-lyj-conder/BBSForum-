@@ -507,6 +507,48 @@ textarea.form-input { resize: vertical; min-height: 150px; line-height: 1.8; }
 }
 .page-header h2 { font-size: 18px; font-weight: 600; color: #111; }
 
+/* ============================================
+   三主题字体变量
+   ============================================ */
+[data-theme="default"] { --font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif; }
+[data-theme="tech"] { --font-family: "Share Tech Mono", "Noto Sans SC", monospace; }
+[data-theme="doodle"] { --font-family: "ZCOOL KuaiLe", "Comic Neue", "PingFang SC", cursive; }
+body { font-family: var(--font-family); }
+
+/* 主题切换器按钮 */
+.theme-btn {
+    border: 1px solid transparent;
+    border-radius: 4px;
+    padding: 4px 7px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: transparent;
+    color: #999;
+    line-height: 1;
+}
+.theme-btn:hover {
+    color: #666;
+    border-color: #d9d9d9;
+}
+
+/* 主题切换器按钮高亮 */
+.theme-btn.active {
+    background: #e6f4ff !important;
+    color: #1677ff !important;
+    border-color: #91caff !important;
+}
+[data-theme="tech"] .theme-btn.active {
+    background: rgba(255,0,255,0.2) !important;
+    color: #FF00FF !important;
+    border-color: rgba(255,0,255,0.4) !important;
+}
+[data-theme="doodle"] .theme-btn.active {
+    background: rgba(245,158,11,0.15) !important;
+    color: #b8860b !important;
+    border-color: rgba(245,158,11,0.3) !important;
+}
+
 /* 响应式 */
 @media (max-width: 768px) {
     .main-container { flex-direction: column; padding: 8px; }

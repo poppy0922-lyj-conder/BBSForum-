@@ -40,7 +40,7 @@
             <c:url value="/cover/${post.id}" var="coverUrl">
                 <c:param name="title" value="${post.title}"/>
             </c:url>
-            <article class="bg-white rounded-lg shadow-sm hover:shadow-md transition-all border border-gray-100 overflow-hidden cursor-pointer mb-3" onclick="location.href='${pageContext.request.contextPath}/post/detail?id=${post.id}'">
+            <article class="post-card bg-white rounded-lg shadow-sm hover:shadow-md transition-all border border-gray-100 cursor-pointer mb-3" onclick="location.href='${pageContext.request.contextPath}/post/detail?id=${post.id}'">
                 <div class="flex items-stretch">
                     <!-- 封面图 -->
                     <div class="w-52 shrink-0 overflow-hidden rounded-l-lg flex" style="min-height:130px">
@@ -76,14 +76,12 @@
                         </div>
                         <div class="flex items-center gap-4 text-xs text-gray-400 flex-wrap">
                             <span class="flex items-center gap-1">
-                                <c:choose>
-                                    <c:when test="${not empty post.authorAvatar}">
-                                        <img src="${post.authorAvatar}" alt="" class="w-5 h-5 rounded-full object-cover">
-                                    </c:when>
-                                    <c:otherwise>
-                                        <span class="w-5 h-5 bg-blue-500 text-white rounded-full flex items-center justify-center text-[10px] font-bold">${fn:substring(post.authorName, 0, 1)}</span>
-                                    </c:otherwise>
-                                </c:choose>
+                                <span class="relative inline-flex">
+                                    <img src="${post.authorAvatar}" alt=""
+                                         class="w-5 h-5 rounded-full object-cover ${empty post.authorAvatar ? 'hidden' : ''}"
+                                         onerror="this.classList.add('hidden');this.nextElementSibling.classList.remove('hidden')">
+                                    <span class="w-5 h-5 bg-blue-500 text-white rounded-full flex items-center justify-center text-[10px] font-bold ${not empty post.authorAvatar ? 'hidden' : ''}">${fn:substring(post.authorName, 0, 1)}</span>
+                                </span>
                                 ${post.authorName}
                             </span>
                             <span><i class="fa fa-folder-o mr-0.5"></i> ${post.categoryName}</span>

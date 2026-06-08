@@ -88,12 +88,12 @@ public class UserProfilePlaceholderServlet extends HttpServlet {
     private List<Map<String, Object>> loadMyPosts(int userId) {
         List<Map<String, Object>> list = new ArrayList<>();
         String sql = "SELECT p.id, p.title, p.content AS summary, p.view_count, p.like_count, " +
-                     "p.favorite_count, p.is_top, p.is_elite, p.created_at, " +
+                     "p.favorite_count, p.is_top, p.is_elite, p.is_deleted, p.created_at, " +
                      "c.name AS category_name, u.username AS author_name " +
                      "FROM posts p " +
                      "JOIN categories c ON p.category_id = c.id " +
                      "JOIN users u ON p.user_id = u.id " +
-                     "WHERE p.user_id = ? " +
+                     "WHERE p.user_id = ? AND p.is_deleted = 0 " +
                      "ORDER BY p.created_at DESC";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -110,6 +110,7 @@ public class UserProfilePlaceholderServlet extends HttpServlet {
                     post.put("favoriteCount", rs.getInt("favorite_count"));
                     post.put("isTop", rs.getInt("is_top"));
                     post.put("isElite", rs.getInt("is_elite"));
+                    post.put("isDeleted", rs.getInt("is_deleted"));
                     post.put("createdAt", rs.getTimestamp("created_at").toString());
                     post.put("categoryName", rs.getString("category_name"));
                     post.put("authorName", rs.getString("author_name"));

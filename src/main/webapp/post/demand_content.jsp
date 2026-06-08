@@ -41,14 +41,12 @@
                             <p class="text-sm <c:choose><c:when test='${demand.status == \"open\"}'>text-gray-500</c:when><c:otherwise>text-gray-300</c:otherwise></c:choose> mt-1 line-clamp-2">${demand.content}</p>
                             <div class="flex items-center gap-4 mt-3 text-xs <c:choose><c:when test='${demand.status == \"open\"}'>text-gray-400</c:when><c:otherwise>text-gray-300</c:otherwise></c:choose>">
                                 <span class="flex items-center gap-1">
-                                    <c:choose>
-                                        <c:when test="${not empty demand.authorAvatar}">
-                                            <img src="${demand.authorAvatar}" alt="" class="w-5 h-5 rounded-full object-cover">
-                                        </c:when>
-                                        <c:otherwise>
-                                            <span class="w-5 h-5 bg-blue-500 text-white rounded-full flex items-center justify-center text-[10px] font-bold">${fn:substring(demand.authorName, 0, 1)}</span>
-                                        </c:otherwise>
-                                    </c:choose>
+                                    <span class="relative inline-flex">
+                                        <img src="${demand.authorAvatar}" alt=""
+                                             class="w-5 h-5 rounded-full object-cover ${empty demand.authorAvatar ? 'hidden' : ''}"
+                                             onerror="this.classList.add('hidden');this.nextElementSibling.classList.remove('hidden')">
+                                        <span class="w-5 h-5 bg-blue-500 text-white rounded-full flex items-center justify-center text-[10px] font-bold ${not empty demand.authorAvatar ? 'hidden' : ''}">${fn:substring(demand.authorName, 0, 1)}</span>
+                                    </span>
                                     ${demand.authorName}
                                 </span>
                                 <span><i class="fa fa-clock-o mr-0.5"></i> ${demand.createdAt}</span>

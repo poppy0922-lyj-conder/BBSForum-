@@ -28,16 +28,14 @@
             <!-- 头像展示 -->
             <div class="flex items-center gap-4 mb-5 pb-5 border-b border-gray-100">
                 <div class="relative">
-                    <c:choose>
-                        <c:when test="${not empty user.avatar}">
-                            <img src="${user.avatar}" alt="头像" class="w-16 h-16 rounded-full object-cover border-2 border-gray-100">
-                        </c:when>
-                        <c:otherwise>
-                            <div class="w-16 h-16 rounded-full bg-blue-500 text-white flex items-center justify-center text-xl font-bold border-2 border-gray-100">
-                                ${fn:substring(user.username, 0, 1)}
-                            </div>
-                        </c:otherwise>
-                    </c:choose>
+                    <span class="relative inline-flex">
+                        <img src="${user.avatar}" alt="头像"
+                             class="w-16 h-16 rounded-full object-cover border-2 border-gray-100 ${empty user.avatar ? 'hidden' : ''}"
+                             onerror="this.classList.add('hidden');this.nextElementSibling.classList.remove('hidden')">
+                        <div class="w-16 h-16 rounded-full bg-blue-500 text-white flex items-center justify-center text-xl font-bold border-2 border-gray-100 ${not empty user.avatar ? 'hidden' : ''}">
+                            ${fn:substring(user.username, 0, 1)}
+                        </div>
+                    </span>
                 </div>
                 <div>
                     <div class="text-base font-semibold text-gray-900">${user.username}</div>

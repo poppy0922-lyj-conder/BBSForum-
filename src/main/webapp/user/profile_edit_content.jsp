@@ -32,7 +32,9 @@
                         <div class="relative">
                             <c:choose>
                                 <c:when test="${not empty user.avatar}">
-                                    <img id="avatarPreview" src="${user.avatar}" alt="头像预览" class="w-16 h-16 rounded-full object-cover border-2 border-gray-100">
+                                    <img id="avatarPreview" src="${user.avatar}" alt="头像预览"
+                                         class="w-16 h-16 rounded-full object-cover border-2 border-gray-100"
+                                         onerror="this.classList.add('hidden');var d=document.getElementById('avatarPreviewDefault');if(d)d.classList.remove('hidden')">
                                 </c:when>
                                 <c:otherwise>
                                     <div id="avatarPreviewDefault" class="w-16 h-16 rounded-full bg-blue-500 text-white flex items-center justify-center text-xl font-bold border-2 border-gray-100">
