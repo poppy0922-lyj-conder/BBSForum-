@@ -694,14 +694,16 @@ function applyTheme(name) {
 
     var css = buildThemeCSS(name);
     var existing = document.getElementById('theme-style-override');
+    var flashGuard = document.getElementById('prevent-flash');
     if (css) {
         var style = document.createElement('style');
         style.id = 'theme-style-override';
         style.textContent = css;
         document.head.appendChild(style);
     }
-    // 新样式注入后再移除旧的
+    // 新样式注入后移除旧的防闪样式
     if (existing) existing.remove();
+    if (flashGuard) flashGuard.remove();
 
     // 更新切换器按钮高亮
     document.querySelectorAll('.theme-btn').forEach(function(btn) {

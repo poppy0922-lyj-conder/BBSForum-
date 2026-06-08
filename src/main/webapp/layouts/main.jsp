@@ -7,6 +7,26 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${pageTitle} - BBS技术社区</title>
+    <!-- 防白闪：在渲染前同步读取 localStorage 注入主题关键样式 -->
+    <script>
+    (function(){
+        var theme = localStorage.getItem('bbs-theme');
+        if (!theme || theme === 'default') return;
+        document.documentElement.setAttribute('data-theme', theme);
+        var css = '';
+        if (theme === 'tech') {
+            css = 'body{background:#090014!important}header{background:rgba(9,0,20,0.95)!important;border-bottom:2px solid #FF00FF!important}.bg-white,.post-card,.auth-card,.profile-header,.stat-card,.quick-item,.data-table{background:rgba(26,16,60,0.80)!important;border:1px solid #2D1B4E!important;border-top:2px solid #00FFFF!important;border-radius:0!important}';
+        } else if (theme === 'doodle') {
+            css = 'body{background-image:linear-gradient(90deg,rgba(180,140,80,0.05) 1px,transparent 1px),linear-gradient(rgba(180,140,80,0.05) 1px,transparent 1px)!important;background-size:20px 20px!important}.bg-white,.post-card,.auth-card,.profile-header,.stat-card,.quick-item,.data-table{background:#fffdf5!important}.post-card{border-radius:255px 15px 225px 15px/15px 225px 15px 255px!important;border:2.5px dashed #d8cdb8!important}';
+        }
+        if (css) {
+            var s = document.createElement('style');
+            s.id = 'prevent-flash';
+            s.textContent = css;
+            document.head.appendChild(s);
+        }
+    })();
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>tailwind.config={theme:{extend:{colors:{primary:'#1677ff',danger:'#ff4d4f',warn:'#fa8c16',elite:'#eb2f96'}}}}</script>
     <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
