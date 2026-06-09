@@ -96,7 +96,9 @@
                 <div class="mb-4">
                     <label class="block text-sm font-medium text-gray-700 mb-1.5">封面图片</label>
                     <div class="flex items-center gap-3 mb-2">
-                        <input type="file" name="coverImage" accept="image/*" class="text-sm text-gray-500 file:mr-3 file:py-1.5 file:px-4 file:rounded file:border-0 file:text-sm file:bg-blue-50 file:text-blue-600 hover:file:bg-blue-100 cursor-pointer">
+                        <button type="button" id="coverUploadBtn" class="py-1.5 px-4 rounded border-0 text-sm bg-blue-50 text-blue-600 hover:bg-blue-100 cursor-pointer">选择文件</button>
+                        <span id="coverFileName" class="text-sm text-gray-400">未选择文件</span>
+                        <input type="file" name="coverImage" id="coverFileInput" accept="image/*" class="hidden">
                         <span class="text-xs text-gray-400">或</span>
                     </div>
                     <input type="text" name="imageUrl" id="preImageUrl" value="${param.imageUrl}" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-200" placeholder="或填入图片URL，如 https://..." maxlength="500" oninput="updatePreview()">
@@ -451,6 +453,16 @@ contentTa.addEventListener('drop', function(e) {
         }).catch(function() {});
     }
 });
+
+// ========== 封面文件上传（自定义按钮） ==========
+document.getElementById('coverUploadBtn').onclick = function() {
+    document.getElementById('coverFileInput').click();
+};
+
+document.getElementById('coverFileInput').onchange = function() {
+    var fileName = this.files[0] ? this.files[0].name : '未选择文件';
+    document.getElementById('coverFileName').textContent = fileName;
+};
 
 // 初始化
 updateContentCount();
