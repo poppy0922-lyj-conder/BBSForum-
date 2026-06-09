@@ -25,6 +25,7 @@
             </h2>
 
             <form action="${pageContext.request.contextPath}/post/create" method="post" enctype="multipart/form-data" id="postForm">
+                <input type="hidden" name="action" id="postAction" value="publish">
                 <!-- 板块选择 -->
                 <div class="mb-4">
                     <label class="block text-sm font-medium text-gray-700 mb-1.5">选择板块 *</label>
@@ -107,8 +108,11 @@
 
                 <!-- 按钮 -->
                 <div class="flex items-center gap-3">
-                    <button type="submit" id="submitBtn" class="inline-flex items-center gap-1.5 px-6 py-2.5 bg-blue-500 text-white text-sm font-medium rounded-md hover:bg-blue-600 transition cursor-pointer border-none">
+                    <button type="submit" id="submitBtn" class="inline-flex items-center gap-1.5 px-6 py-2.5 bg-blue-500 text-white text-sm font-medium rounded-md hover:bg-blue-600 transition cursor-pointer border-none" onclick="document.getElementById('postAction').value='publish'">
                         <i class="fa fa-check"></i> 发布
+                    </button>
+                    <button type="submit" id="draftBtn" class="inline-flex items-center gap-1.5 px-5 py-2.5 bg-gray-100 text-gray-600 text-sm font-medium rounded-md hover:bg-gray-200 transition cursor-pointer border-none" onclick="document.getElementById('postAction').value='draft'">
+                        <i class="fa fa-save"></i> 保存草稿
                     </button>
                     <span class="text-xs text-gray-400">按 Ctrl+Enter 快速发布</span>
                     <a href="${pageContext.request.contextPath}/" class="inline-flex items-center gap-1 px-5 py-2.5 bg-gray-200 text-gray-600 text-sm rounded-md hover:bg-gray-300 no-underline transition ml-auto">取消</a>
@@ -400,11 +404,19 @@ function renderMarkdown(text) {
 // ========== 防止重复提交 + Ctrl+Enter ==========
 var postForm = document.getElementById('postForm');
 var submitBtn = document.getElementById('submitBtn');
+var draftBtn = document.getElementById('draftBtn');
 
-postForm.addEventListener('submit', function() {
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = '<i class="fa fa-spinner fa-pulse"></i> 发布中...';
-    submitBtn.className = 'inline-flex items-center gap-1.5 px-6 py-2.5 bg-blue-400 text-white text-sm font-medium rounded-md cursor-not-allowed border-none';
+postForm.addEventListener('submit', function(e) {
+    var action = document.getElementById('postAction').value;
+    if (action === 'draft') {
+        draftBtn.disabled = true;
+        draftBtn.innerHTML = '<i class="fa fa-spinner fa-pulse"></i> 保存中...';
+        draftBtn.className = 'inline-flex items-center gap-1.5 px-5 py-2.5 bg-gray-300 text-gray-500 text-sm font-medium rounded-md cursor-not-allowed border-none';
+    } else {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fa fa-spinner fa-pulse"></i> 发布中...';
+        submitBtn.className = 'inline-flex items-center gap-1.5 px-6 py-2.5 bg-blue-400 text-white text-sm font-medium rounded-md cursor-not-allowed border-none';
+    }
 });
 
 contentTa.addEventListener('keydown', function(e) {

@@ -29,7 +29,7 @@ import java.util.logging.Logger;
  * 帖子控制器
  * 负责：查看帖子详情、发布帖子、回复帖子（支持本地上传封面图）
  */
-@WebServlet(name = "post", urlPatterns = {"/post/create", "/post/detail", "/post/reply", "/post/edit", "/post/delete", "/post/uploadImage", "/post/aiSummary", "/post/search"})
+@WebServlet(name = "post", urlPatterns = {"/post/create", "/post/detail", "/post/reply", "/post/edit", "/post/delete", "/post/uploadImage", "/post/aiSummary", "/post/search", "/post/drafts"})
 @MultipartConfig(maxFileSize = 5 * 1024 * 1024, location = "")
 public class PostServlet extends HttpServlet {
 
@@ -51,6 +51,8 @@ public class PostServlet extends HttpServlet {
             handleDelete(request, response);
         } else if ("/post/search".equals(path)) {
             handleSearch(request, response);
+        } else if ("/post/drafts".equals(path)) {
+            handleDrafts(request, response);
         }
     }
 
@@ -96,7 +98,7 @@ public class PostServlet extends HttpServlet {
         }
 
         // 1. 浏览量+1
-        String updateSql = "UPDATE posts SET view_count = view_count + 1 WHERE id = ? AND is_deleted = 0";
+        String updateSql = "UPDATE posts SET view_count = view_count + 1 WHERE id = ? AND is_deleted = 0 AND is_draft = 0";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(updateSql)) {
             ps.setInt(1, postId);
@@ -112,7 +114,7 @@ public class PostServlet extends HttpServlet {
                          "FROM posts p " +
                          "JOIN users u ON p.user_id = u.id " +
                          "JOIN categories c ON p.category_id = c.id " +
-                         "WHERE p.id = ? AND p.is_deleted = 0";
+                         "WHERE p.id = ? AND p.is_deleted = 0 AND p.is_draft = 0";
         Map<String, Object> post = null;
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(postSql)) {
@@ -175,16 +177,22 @@ public class PostServlet extends HttpServlet {
             }
         }
 
-        // 3. 查询回复列表
+        // 3. 查询回复列表（含嵌套回复，整理为树形结构）
         List<Map<String, Object>> replyList = new ArrayList<>();
-        String replySql = "SELECT r.id, r.content, r.created_at, u.username AS author_name, u.avatar AS author_avatar, u.id AS user_id " +
-                          "FROM replies r JOIN users u ON r.user_id = u.id " +
+        String replySql = "SELECT r.id, r.content, r.created_at, r.parent_id, " +
+                          "u.username AS author_name, u.avatar AS author_avatar, u.id AS user_id, " +
+                          "pu.username AS parent_author_name " +
+                          "FROM replies r " +
+                          "JOIN users u ON r.user_id = u.id " +
+                          "LEFT JOIN replies pr ON r.parent_id = pr.id " +
+                          "LEFT JOIN users pu ON pr.user_id = pu.id " +
                           "WHERE r.post_id = ? AND r.is_deleted = 0 ORDER BY r.created_at ASC";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(replySql)) {
             ps.setInt(1, postId);
             try (ResultSet rs = ps.executeQuery()) {
-                int floor = 1;
+                // 先收集所有回复
+                List<Map<String, Object>> allReplies = new ArrayList<>();
                 while (rs.next()) {
                     Map<String, Object> reply = new HashMap<>();
                     reply.put("id", rs.getInt("id"));
@@ -193,8 +201,33 @@ public class PostServlet extends HttpServlet {
                     reply.put("authorName", rs.getString("author_name"));
                     reply.put("authorAvatar", rs.getString("author_avatar") == null ? "" : rs.getString("author_avatar"));
                     reply.put("userId", rs.getInt("user_id"));
-                    reply.put("floor", floor++);
-                    replyList.add(reply);
+                    reply.put("parentId", rs.getObject("parent_id") != null ? rs.getInt("parent_id") : null);
+                    reply.put("parentAuthorName", rs.getString("parent_author_name") == null ? "" : rs.getString("parent_author_name"));
+                    allReplies.add(reply);
+                }
+                // 按树形结构排列：父回复后紧跟其子回复
+                Map<Integer, List<Map<String, Object>>> childrenMap = new HashMap<>();
+                List<Map<String, Object>> parentReplies = new ArrayList<>();
+                for (Map<String, Object> r : allReplies) {
+                    Integer pId = (Integer) r.get("parentId");
+                    if (pId == null) {
+                        parentReplies.add(r);
+                    } else {
+                        childrenMap.computeIfAbsent(pId, k -> new ArrayList<>()).add(r);
+                    }
+                }
+                int floor = 1;
+                for (Map<String, Object> parent : parentReplies) {
+                    parent.put("floor", floor++);
+                    replyList.add(parent);
+                    int parentId = (int) parent.get("id");
+                    List<Map<String, Object>> children = childrenMap.get(parentId);
+                    if (children != null) {
+                        for (Map<String, Object> child : children) {
+                            child.put("floor", floor++);
+                            replyList.add(child);
+                        }
+                    }
                 }
             }
         } catch (SQLException e) {
@@ -214,7 +247,7 @@ public class PostServlet extends HttpServlet {
         List<Map<String, Object>> list = new ArrayList<>();
         StringBuilder sql = new StringBuilder(
             "SELECT p.id, p.title, p.view_count, p.created_at, u.username AS author_name " +
-            "FROM posts p JOIN users u ON p.user_id = u.id WHERE p.id != ? AND p.is_deleted = 0 AND (");
+            "FROM posts p JOIN users u ON p.user_id = u.id WHERE p.id != ? AND p.is_deleted = 0 AND p.is_draft = 0 AND (");
 
         if (keywords != null && !keywords.trim().isEmpty()) {
             String[] kws = keywords.split("[,，]");
@@ -253,7 +286,7 @@ public class PostServlet extends HttpServlet {
         request.setAttribute("relatedPosts", list);
     }
 
-    /** 处理发帖（需登录，支持本地上传封面图） */
+    /** 处理发帖（需登录，支持本地上传封面图），支持 action=draft 保存草稿 */
     private void handleCreatePost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         HttpSession session = request.getSession();
@@ -262,6 +295,9 @@ public class PostServlet extends HttpServlet {
             response.sendRedirect(request.getContextPath() + "/user/login");
             return;
         }
+
+        String action = request.getParameter("action");
+        boolean isDraft = "draft".equals(action);
 
         String title = request.getParameter("title");
         String content = request.getParameter("content");
@@ -288,7 +324,7 @@ public class PostServlet extends HttpServlet {
             categoryId = 1;
         }
 
-        String sql = "INSERT INTO posts (title, content, image_url, keywords, user_id, category_id) VALUES (?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO posts (title, content, image_url, keywords, user_id, category_id, is_draft) VALUES (?, ?, ?, ?, ?, ?, ?)";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             ps.setString(1, title.trim());
@@ -297,18 +333,25 @@ public class PostServlet extends HttpServlet {
             ps.setString(4, keywords == null ? "" : keywords.trim());
             ps.setInt(5, userId);
             ps.setInt(6, categoryId);
+            ps.setInt(7, isDraft ? 1 : 0);
             ps.executeUpdate();
 
             try (ResultSet rs = ps.getGeneratedKeys()) {
                 if (rs.next()) {
                     int newId = rs.getInt(1);
-                    LOG.info("新帖发布成功, postId=" + newId + ", 作者=" + user.get("username"));
 
-                    // 发帖 +10 积分
-                    addScore(userId, 10, "发布帖子");
-
-                    response.sendRedirect(request.getContextPath() + "/post/detail?id=" + newId);
-                    return;
+                    if (isDraft) {
+                        LOG.info("草稿保存成功, postId=" + newId + ", 作者=" + user.get("username"));
+                        // 草稿不发放积分，跳转到草稿箱
+                        response.sendRedirect(request.getContextPath() + "/post/drafts");
+                        return;
+                    } else {
+                        LOG.info("新帖发布成功, postId=" + newId + ", 作者=" + user.get("username"));
+                        // 发帖 +10 积分
+                        addScore(userId, 10, "发布帖子");
+                        response.sendRedirect(request.getContextPath() + "/post/detail?id=" + newId);
+                        return;
+                    }
                 }
             }
         } catch (SQLException e) {
@@ -321,7 +364,57 @@ public class PostServlet extends HttpServlet {
         response.sendRedirect(request.getContextPath() + "/");
     }
 
-    /** 处理回复（需登录） */
+    /** 查看个人草稿列表（需登录） */
+    private void handleDrafts(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        HttpSession session = request.getSession();
+        Map<String, Object> user = (Map<String, Object>) session.getAttribute("user");
+        if (user == null) {
+            response.sendRedirect(request.getContextPath() + "/user/login");
+            return;
+        }
+
+        int userId = (int) user.get("id");
+        List<Map<String, Object>> draftList = new ArrayList<>();
+
+        String sql = "SELECT p.id, p.title, p.content, p.image_url, p.keywords, " +
+                     "c.name AS category_name, p.created_at, p.updated_at " +
+                     "FROM posts p " +
+                     "JOIN categories c ON p.category_id = c.id " +
+                     "WHERE p.user_id = ? AND p.is_draft = 1 AND p.is_deleted = 0 " +
+                     "ORDER BY p.updated_at DESC";
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, userId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Map<String, Object> draft = new HashMap<>();
+                    draft.put("id", rs.getInt("id"));
+                    draft.put("title", rs.getString("title"));
+                    String raw = rs.getString("content");
+                    draft.put("summary", raw == null ? "" : raw.substring(0, Math.min(raw.length(), 120)));
+                    draft.put("imageUrl", rs.getString("image_url") == null ? "" : rs.getString("image_url"));
+                    draft.put("keywords", rs.getString("keywords") == null ? "" : rs.getString("keywords"));
+                    draft.put("categoryName", rs.getString("category_name"));
+                    draft.put("createdAt", rs.getTimestamp("created_at").toString());
+                    Timestamp updatedAt = rs.getTimestamp("updated_at");
+                    draft.put("updatedAt", updatedAt != null ? updatedAt.toString() : rs.getTimestamp("created_at").toString());
+                    draftList.add(draft);
+                }
+            }
+        } catch (SQLException e) {
+            LOG.log(Level.SEVERE, "查询草稿列表失败, userId=" + userId, e);
+        }
+
+        request.setAttribute("draftList", draftList);
+        request.setAttribute("activeMenu", "drafts");
+        // 加载积分记录供侧边栏显示
+        List<Map<String, Object>> scoreLogs = loadScoreLogs(userId, 5);
+        request.setAttribute("scoreLogs", scoreLogs);
+        request.getRequestDispatcher("/user/drafts.jsp").forward(request, response);
+    }
+
+    /** 处理回复（需登录），支持 parentId 嵌套回复 */
     private void handleReply(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         HttpSession session = request.getSession();
@@ -333,6 +426,7 @@ public class PostServlet extends HttpServlet {
 
         String content = request.getParameter("content");
         String postIdStr = request.getParameter("postId");
+        String parentIdStr = request.getParameter("parentId");
 
         if (content == null || content.trim().isEmpty()) {
             response.sendRedirect(request.getContextPath() + "/post/detail?id=" + postIdStr);
@@ -348,19 +442,56 @@ public class PostServlet extends HttpServlet {
             return;
         }
 
-        String sql = "INSERT INTO replies (content, user_id, post_id) VALUES (?, ?, ?)";
+        Integer parentId = null;
+        if (parentIdStr != null && !parentIdStr.trim().isEmpty()) {
+            try {
+                parentId = Integer.parseInt(parentIdStr);
+            } catch (NumberFormatException ignored) {
+            }
+        }
+
+        String sql = "INSERT INTO replies (content, user_id, post_id, parent_id) VALUES (?, ?, ?, ?)";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, content.trim());
             ps.setInt(2, userId);
             ps.setInt(3, postId);
+            if (parentId != null) {
+                ps.setInt(4, parentId);
+            } else {
+                ps.setNull(4, java.sql.Types.INTEGER);
+            }
             ps.executeUpdate();
-            LOG.info("新回复成功, postId=" + postId + ", 用户=" + user.get("username"));
+            LOG.info("新回复成功, postId=" + postId + ", 用户=" + user.get("username") + ", parentId=" + parentId);
 
             // 回复 +2 积分
             addScore(userId, 2, "回复帖子");
 
-            // 给帖子作者发送回复通知（不通知自己）
+            // 如果是嵌套回复，通知被回复的用户
+            if (parentId != null) {
+                String parentSql = "SELECT user_id FROM replies WHERE id = ?";
+                try (PreparedStatement ps2 = conn.prepareStatement(parentSql)) {
+                    ps2.setInt(1, parentId);
+                    try (ResultSet rs2 = ps2.executeQuery()) {
+                        if (rs2.next()) {
+                            int repliedUserId = rs2.getInt("user_id");
+                            if (repliedUserId != userId) {
+                                String contentShort = content.trim().length() > 20 ? content.trim().substring(0, 20) + "..." : content.trim();
+                                String notifSql = "INSERT INTO notifications (user_id, type, content, target_url) VALUES (?, ?, ?, ?)";
+                                try (PreparedStatement ps3 = conn.prepareStatement(notifSql)) {
+                                    ps3.setInt(1, repliedUserId);
+                                    ps3.setString(2, "reply_reply");
+                                    ps3.setString(3, "用户 " + user.get("username") + " 回复了你的评论「" + contentShort + "」");
+                                    ps3.setString(4, "/post/detail?id=" + postId);
+                                    ps3.executeUpdate();
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 给帖子作者发送回复通知（不通知自己，且嵌套回复时如果已通知被回复人，仍需通知帖子作者）
             String authorSql = "SELECT user_id FROM posts WHERE id = ?";
             try (PreparedStatement ps2 = conn.prepareStatement(authorSql)) {
                 ps2.setInt(1, postId);
@@ -374,11 +505,12 @@ public class PostServlet extends HttpServlet {
                                 try (ResultSet rs3 = ps3.executeQuery()) {
                                     String title = rs3.next() ? rs3.getString("title") : "";
                                     String titleShort = title.length() > 20 ? title.substring(0, 20) + "..." : title;
-                                    String notifSql = "INSERT INTO notifications (user_id, type, content) VALUES (?, ?, ?)";
+                                    String notifSql = "INSERT INTO notifications (user_id, type, content, target_url) VALUES (?, ?, ?, ?)";
                                     try (PreparedStatement ps4 = conn.prepareStatement(notifSql)) {
                                         ps4.setInt(1, authorId);
                                         ps4.setString(2, "new_reply");
                                         ps4.setString(3, "用户 " + user.get("username") + " 回复了你的帖子「" + titleShort + "」");
+                                        ps4.setString(4, "/post/detail?id=" + postId);
                                         ps4.executeUpdate();
                                     }
                                 }
@@ -412,7 +544,7 @@ public class PostServlet extends HttpServlet {
             return;
         }
 
-        String sql = "SELECT p.id, p.title, p.content, p.image_url, p.user_id, p.category_id FROM posts p WHERE p.id = ? AND p.is_deleted = 0";
+        String sql = "SELECT p.id, p.title, p.content, p.image_url, p.user_id, p.category_id, p.is_draft FROM posts p WHERE p.id = ? AND p.is_deleted = 0";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, postId);
@@ -431,6 +563,7 @@ public class PostServlet extends HttpServlet {
                     post.put("imageUrl", rs.getString("image_url") == null ? "" : rs.getString("image_url"));
                     post.put("userId", rs.getInt("user_id"));
                     post.put("categoryId", rs.getInt("category_id"));
+                    post.put("isDraft", rs.getInt("is_draft") == 1);
                     request.setAttribute("post", post);
                 } else {
                     response.sendRedirect(request.getContextPath() + "/");
@@ -504,7 +637,30 @@ public class PostServlet extends HttpServlet {
             LOG.log(Level.SEVERE, "检查编辑权限失败, postId=" + postId, e);
         }
 
-        String sql = "UPDATE posts SET title=?, content=?, image_url=?, keywords=?, category_id=? WHERE id=?";
+        // 检查是否为草稿发布（需在更新前读取旧值）
+        boolean wasDraft = false;
+        String action = request.getParameter("action");
+        boolean publishDraft = "publish".equals(action);
+
+        String checkDraftSql = "SELECT is_draft FROM posts WHERE id = ?";
+        try (Connection connCheck = DBUtil.getConnection();
+             PreparedStatement psCheck = connCheck.prepareStatement(checkDraftSql)) {
+            psCheck.setInt(1, postId);
+            try (ResultSet rsCheck = psCheck.executeQuery()) {
+                if (rsCheck.next() && rsCheck.getInt("is_draft") == 1) {
+                    wasDraft = true;
+                }
+            }
+        } catch (SQLException e) {
+            LOG.log(Level.WARNING, "检查草稿状态失败, postId=" + postId, e);
+        }
+
+        String sql;
+        if (publishDraft && wasDraft) {
+            sql = "UPDATE posts SET title=?, content=?, image_url=?, keywords=?, category_id=?, is_draft=0 WHERE id=?";
+        } else {
+            sql = "UPDATE posts SET title=?, content=?, image_url=?, keywords=?, category_id=? WHERE id=?";
+        }
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, title.trim());
@@ -514,6 +670,13 @@ public class PostServlet extends HttpServlet {
             ps.setInt(5, categoryId);
             ps.setInt(6, postId);
             ps.executeUpdate();
+
+            // 如果是草稿发布，发放 +10 积分
+            if (publishDraft && wasDraft) {
+                addScore((int) user.get("id"), 10, "发布帖子");
+                LOG.info("草稿发布成功, postId=" + postId + ", 用户=" + user.get("username"));
+            }
+
             LOG.info("帖子编辑成功, postId=" + postId + ", 操作者=" + user.get("username"));
         } catch (SQLException e) {
             LOG.log(Level.SEVERE, "编辑帖子失败, postId=" + postId, e);
@@ -616,7 +779,7 @@ public class PostServlet extends HttpServlet {
 
     /** 统计搜索匹配的帖子总数 */
     private int countSearchPosts(String keyword) {
-        String sql = "SELECT COUNT(*) FROM posts WHERE (title LIKE ? OR content LIKE ? OR keywords LIKE ?) AND is_deleted = 0";
+        String sql = "SELECT COUNT(*) FROM posts WHERE (title LIKE ? OR content LIKE ? OR keywords LIKE ?) AND is_deleted = 0 AND is_draft = 0";
         String like = "%" + keyword + "%";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -645,7 +808,7 @@ public class PostServlet extends HttpServlet {
                      "FROM posts p " +
                      "JOIN users u ON p.user_id = u.id " +
                      "JOIN categories c ON p.category_id = c.id " +
-                     "WHERE (p.title LIKE ? OR p.content LIKE ? OR p.keywords LIKE ?) AND p.is_deleted = 0 " +
+                     "WHERE (p.title LIKE ? OR p.content LIKE ? OR p.keywords LIKE ?) AND p.is_deleted = 0 AND p.is_draft = 0 " +
                      "ORDER BY p.is_top DESC, p.is_elite DESC, p.created_at DESC " +
                      "LIMIT ? OFFSET ?";
         try (Connection conn = DBUtil.getConnection();
@@ -811,5 +974,28 @@ public class PostServlet extends HttpServlet {
         } catch (SQLException e) {
             LOG.log(Level.WARNING, "加分失败: userId=" + userId + ", score=" + score, e);
         }
+    }
+
+    /** 加载用户最近积分记录（供侧边栏显示） */
+    private List<Map<String, Object>> loadScoreLogs(int userId, int limit) {
+        List<Map<String, Object>> list = new ArrayList<>();
+        String sql = "SELECT score, reason, created_at FROM score_logs WHERE user_id = ? ORDER BY created_at DESC LIMIT ?";
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, userId);
+            ps.setInt(2, limit);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Map<String, Object> log = new HashMap<>();
+                    log.put("score", rs.getInt("score"));
+                    log.put("reason", rs.getString("reason") == null ? "" : rs.getString("reason"));
+                    log.put("createdAt", rs.getTimestamp("created_at"));
+                    list.add(log);
+                }
+            }
+        } catch (SQLException e) {
+            LOG.log(Level.WARNING, "加载积分记录失败: userId=" + userId, e);
+        }
+        return list;
     }
 }

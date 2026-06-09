@@ -93,7 +93,7 @@ public class UserProfilePlaceholderServlet extends HttpServlet {
                      "FROM posts p " +
                      "JOIN categories c ON p.category_id = c.id " +
                      "JOIN users u ON p.user_id = u.id " +
-                     "WHERE p.user_id = ? AND p.is_deleted = 0 " +
+                     "WHERE p.user_id = ? AND p.is_deleted = 0 AND p.is_draft = 0 " +
                      "ORDER BY p.created_at DESC";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {

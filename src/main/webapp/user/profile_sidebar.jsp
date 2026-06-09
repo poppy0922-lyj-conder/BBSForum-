@@ -23,6 +23,11 @@
                 </a>
             </li>
             <li>
+                <a href="${pageContext.request.contextPath}/post/drafts" class="flex items-center gap-2 px-4 py-2.5 text-sm no-underline ${activeMenu == 'drafts' ? 'bg-blue-50 text-blue-500 font-medium' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-500'}">
+                    <i class="fa fa-pencil-square-o w-4 text-center"></i> 草稿箱
+                </a>
+            </li>
+            <li>
                 <a href="${pageContext.request.contextPath}/user/profile/demands" class="flex items-center gap-2 px-4 py-2.5 text-sm no-underline ${activeMenu == 'demands' ? 'bg-blue-50 text-blue-500 font-medium' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-500'}">
                     <i class="fa fa-gift w-4 text-center"></i> 我的悬赏
                 </a>

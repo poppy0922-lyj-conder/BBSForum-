@@ -123,7 +123,7 @@ public class InteractionServlet extends HttpServlet {
                 if (authorId != userId) {
                     String postTitle = getPostTitle(conn, postId);
                     String titleShort = postTitle.length() > 20 ? postTitle.substring(0, 20) + "..." : postTitle;
-                    insertNotification(authorId, "new_like", "用户 " + username + " 赞了你的帖子「" + titleShort + "」");
+                    insertNotification(authorId, "new_like", "用户 " + username + " 赞了你的帖子「" + titleShort + "」", "/post/detail?id=" + postId);
                 }
             }
         }
@@ -168,20 +168,21 @@ public class InteractionServlet extends HttpServlet {
                 if (authorId != userId) {
                     String postTitle = getPostTitle(conn, postId);
                     String titleShort = postTitle.length() > 20 ? postTitle.substring(0, 20) + "..." : postTitle;
-                    insertNotification(authorId, "new_favorite", "用户 " + username + " 收藏了你的帖子「" + titleShort + "」");
+                    insertNotification(authorId, "new_favorite", "用户 " + username + " 收藏了你的帖子「" + titleShort + "」", "/post/detail?id=" + postId);
                 }
             }
         }
     }
 
     /** 插入通知 */
-    private void insertNotification(int receiverId, String type, String content) {
-        String sql = "INSERT INTO notifications (user_id, type, content) VALUES (?, ?, ?)";
+    private void insertNotification(int receiverId, String type, String content, String targetUrl) {
+        String sql = "INSERT INTO notifications (user_id, type, content, target_url) VALUES (?, ?, ?, ?)";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, receiverId);
             ps.setString(2, type);
             ps.setString(3, content);
+            ps.setString(4, targetUrl);
             ps.executeUpdate();
         } catch (SQLException e) {
             LOG.log(Level.WARNING, "插入通知失败", e);

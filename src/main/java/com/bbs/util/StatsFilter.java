@@ -51,7 +51,7 @@ public class StatsFilter implements Filter {
     private void refreshCache() {
         try (Connection conn = DBUtil.getConnection()) {
             cachedUserCount = count(conn, "SELECT COUNT(*) FROM users");
-            cachedPostCount = count(conn, "SELECT COUNT(*) FROM posts WHERE is_deleted = 0");
+            cachedPostCount = count(conn, "SELECT COUNT(*) FROM posts WHERE is_deleted = 0 AND is_draft = 0");
             cachedReplyCount = count(conn, "SELECT COUNT(*) FROM replies WHERE is_deleted = 0");
             cachedDemandCount = count(conn, "SELECT COUNT(*) FROM demands WHERE is_deleted = 0");
             cachedHotKeywords = loadHotKeywords(conn);
@@ -70,7 +70,7 @@ public class StatsFilter implements Filter {
     /** 从 posts 表的 keywords 字段提取关键词，按出现频率排序 */
     private List<Map.Entry<String, Integer>> loadHotKeywords(Connection conn) {
         Map<String, Integer> freq = new TreeMap<>();
-        String sql = "SELECT keywords FROM posts WHERE keywords IS NOT NULL AND keywords != '' AND is_deleted = 0";
+        String sql = "SELECT keywords FROM posts WHERE keywords IS NOT NULL AND keywords != '' AND is_deleted = 0 AND is_draft = 0";
         try (Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
             while (rs.next()) {

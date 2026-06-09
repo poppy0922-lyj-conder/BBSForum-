@@ -145,7 +145,7 @@
         <c:otherwise>
             <div class="space-y-3">
                 <c:forEach var="reply" items="${replyList}">
-                    <div class="post-card bg-white rounded-lg shadow-sm border border-gray-100 p-5">
+                    <div class="bg-white rounded-lg border border-gray-100 ${not empty reply.parentId ? 'ml-8 border-l-2 border-l-blue-200 bg-gray-50/50 px-4 py-3' : 'p-5 shadow-sm'}">
                         <div class="flex items-center gap-3 mb-3">
                             <span class="relative inline-flex">
                                 <img src="${reply.authorAvatar}" alt=""
@@ -154,12 +154,20 @@
                                 <span class="w-7 h-7 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold ${not empty reply.authorAvatar ? 'hidden' : ''}">${fn:substring(reply.authorName, 0, 1)}</span>
                             </span>
                             <span class="text-sm font-medium text-gray-700">${reply.authorName}</span>
+                            <c:if test="${not empty reply.parentAuthorName}">
+                                <span class="text-xs text-gray-400"><i class="fa fa-reply"></i> 回复 @${reply.parentAuthorName}</span>
+                            </c:if>
                             <span class="text-xs text-gray-400"><span data-time-ago="${reply.createdAt}">${reply.createdAt}</span></span>
                             <span class="text-xs text-gray-300 ml-auto">#${reply.floor}</span>
                         </div>
                         <p class="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">${reply.content}</p>
-                        <c:if test="${not empty sessionScope.user && sessionScope.user.id != reply.userId}">
-                            <div class="mt-2 pt-2 border-t border-gray-50">
+                        <c:if test="${not empty sessionScope.user}">
+                            <div class="mt-2 pt-2 border-t border-gray-50 flex items-center gap-3">
+                                <c:if test="${sessionScope.user.id != reply.userId}">
+                                    <button onclick="setReplyTo(${reply.id}, this)" data-author="${fn:escapeXml(reply.authorName)}" class="text-xs text-blue-500 hover:text-blue-600 transition cursor-pointer bg-transparent border-none flex items-center gap-1">
+                                        <i class="fa fa-reply"></i> 回复
+                                    </button>
+                                </c:if>
                                 <button onclick="showReportModal('reply', ${reply.id}, this)" class="text-xs text-gray-400 hover:text-red-500 transition cursor-pointer bg-transparent border-none">
                                     <i class="fa fa-flag-o"></i> 举报
                                 </button>
@@ -176,9 +184,18 @@
 <c:choose>
     <c:when test="${not empty sessionScope.user}">
         <section class="post-card bg-white rounded-lg shadow-sm border border-gray-100 p-6">
-            <form action="${pageContext.request.contextPath}/post/reply" method="post">
+            <form action="${pageContext.request.contextPath}/post/reply" method="post" id="replyForm">
                 <input type="hidden" name="postId" value="${post.id}">
-                <textarea name="content" rows="4" placeholder="写下你的回复..." class="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-200 resize-none mb-4" required></textarea>
+                <input type="hidden" name="parentId" id="replyParentId" value="">
+                <!-- 正在回复提示条 -->
+                <div id="replyIndicator" class="hidden flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-lg px-4 py-2 mb-3 text-sm text-blue-700">
+                    <i class="fa fa-reply"></i>
+                    <span>正在回复 <strong id="replyTargetName"></strong></span>
+                    <button type="button" onclick="cancelReply()" class="ml-auto text-blue-500 hover:text-blue-700 cursor-pointer bg-transparent border-none text-sm">
+                        <i class="fa fa-times"></i> 取消回复
+                    </button>
+                </div>
+                <textarea name="content" id="replyContent" rows="4" placeholder="写下你的回复..." class="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-200 resize-none mb-4" required></textarea>
                 <button type="submit" class="inline-flex items-center gap-1.5 px-5 py-2 bg-blue-500 text-white text-sm rounded-md hover:bg-blue-600 transition cursor-pointer border-none">
                     <i class="fa fa-send"></i> 提交回复
                 </button>
@@ -532,4 +549,23 @@ function closeImgLightbox() {
 document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') closeImgLightbox();
 });
+
+// ========== 嵌套回复 ==========
+function setReplyTo(parentId, btn) {
+    var authorName = btn.getAttribute('data-author');
+    document.getElementById('replyParentId').value = parentId;
+    document.getElementById('replyTargetName').textContent = '@' + authorName;
+    document.getElementById('replyIndicator').classList.remove('hidden');
+    document.getElementById('replyContent').focus();
+
+    // 滚动到回复表单
+    document.getElementById('replyForm').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function cancelReply() {
+    document.getElementById('replyParentId').value = '';
+    document.getElementById('replyIndicator').classList.add('hidden');
+    document.getElementById('replyTargetName').textContent = '';
+    document.getElementById('replyContent').focus();
+}
 </script>

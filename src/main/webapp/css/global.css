@@ -519,13 +519,15 @@ body { font-family: var(--font-family); }
 .theme-btn {
     border: 1px solid transparent;
     border-radius: 4px;
-    padding: 4px 7px;
+    padding: 4px 8px;
     font-size: 13px;
     cursor: pointer;
     transition: all 0.2s;
     background: transparent;
     color: #999;
-    line-height: 1;
+    line-height: 1.4;
+    display: inline-flex;
+    align-items: center;
 }
 .theme-btn:hover {
     color: #666;

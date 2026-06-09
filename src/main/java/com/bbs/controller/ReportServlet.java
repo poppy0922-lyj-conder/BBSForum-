@@ -376,13 +376,13 @@ public class ReportServlet extends HttpServlet {
 
             // 通知举报人
             String reporterMsg = "您举报的" + targetTypeName + "(ID:" + targetId + ")已处理，结果为：" + ("approve".equals(action) ? "通过" : "驳回");
-            insertNotification(conn, reporterId, "report_result", reporterMsg);
+            insertNotification(conn, reporterId, "report_result", reporterMsg, null);
 
             // 通知被举报人（仅通过时）
             if ("approve".equals(action) && targetAuthorId != null && targetAuthorId != reporterId) {
                 String reasonText = mapReasonToChinese(reason);
                 String authorMsg = "您发布的" + targetTypeName + "因【" + reasonText + "】已被删除";
-                insertNotification(conn, targetAuthorId, "content_deleted", authorMsg);
+                insertNotification(conn, targetAuthorId, "content_deleted", authorMsg, null);
             }
 
             conn.commit();
@@ -556,12 +556,13 @@ public class ReportServlet extends HttpServlet {
     }
 
     /** 插入通知（在事务内使用传入的 conn） */
-    private void insertNotification(Connection conn, int userId, String type, String content) {
-        String sql = "INSERT INTO notifications (user_id, type, content) VALUES (?, ?, ?)";
+    private void insertNotification(Connection conn, int userId, String type, String content, String targetUrl) {
+        String sql = "INSERT INTO notifications (user_id, type, content, target_url) VALUES (?, ?, ?, ?)";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, userId);
             ps.setString(2, type);
             ps.setString(3, content);
+            ps.setString(4, targetUrl);
             ps.executeUpdate();
         } catch (SQLException e) {
             LOG.log(Level.WARNING, "插入通知失败: userId=" + userId + ", type=" + type, e);

@@ -130,7 +130,7 @@ public class NotificationServlet extends HttpServlet {
 
             // 查询通知列表
             List<Map<String, Object>> notificationList = new ArrayList<>();
-            String listSql = "SELECT id, type, content, is_read, created_at FROM notifications " +
+            String listSql = "SELECT id, type, content, target_url, is_read, created_at FROM notifications " +
                              "WHERE user_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?";
             try (PreparedStatement ps = conn.prepareStatement(listSql)) {
                 ps.setInt(1, userId);
@@ -142,6 +142,7 @@ public class NotificationServlet extends HttpServlet {
                         notification.put("id", rs.getInt("id"));
                         notification.put("type", rs.getString("type"));
                         notification.put("content", rs.getString("content"));
+                        notification.put("targetUrl", rs.getString("target_url"));
                         notification.put("isRead", rs.getInt("is_read") == 1);
                         notification.put("createdAt", rs.getTimestamp("created_at"));
                         notificationList.add(notification);
@@ -221,7 +222,7 @@ public class NotificationServlet extends HttpServlet {
 
         try (Connection conn = DBUtil.getConnection()) {
             // 查询通知（验证属于当前用户）
-            String notifSql = "SELECT id, type, content, is_read, created_at FROM notifications WHERE id = ? AND user_id = ?";
+            String notifSql = "SELECT id, type, content, target_url, is_read, created_at FROM notifications WHERE id = ? AND user_id = ?";
             Map<String, Object> notification = null;
             try (PreparedStatement ps = conn.prepareStatement(notifSql)) {
                 ps.setInt(1, notifId);
@@ -232,6 +233,7 @@ public class NotificationServlet extends HttpServlet {
                         notification.put("id", rs.getInt("id"));
                         notification.put("type", rs.getString("type"));
                         notification.put("content", rs.getString("content"));
+                        notification.put("targetUrl", rs.getString("target_url"));
                         notification.put("isRead", rs.getInt("is_read") == 1);
                         notification.put("createdAt", rs.getTimestamp("created_at"));
                     }

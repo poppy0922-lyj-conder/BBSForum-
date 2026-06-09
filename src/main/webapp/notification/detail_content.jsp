@@ -65,6 +65,14 @@
                     <i class="fa fa-clock-o mr-1"></i>
                     <fmt:formatDate value="${notification.createdAt}" pattern="yyyy-MM-dd HH:mm:ss" />
                 </p>
+                <c:if test="${not empty notification.targetUrl}">
+                    <div class="mt-4 pt-4 border-t border-gray-100">
+                        <a href="${pageContext.request.contextPath}${notification.targetUrl}"
+                           class="inline-flex items-center gap-2 px-4 py-2 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600 transition no-underline">
+                            <i class="fa fa-external-link"></i> 查看相关帖子
+                        </a>
+                    </div>
+                </c:if>
             </div>
         </div>
     </div>

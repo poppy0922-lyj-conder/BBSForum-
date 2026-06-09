@@ -15,7 +15,7 @@
         document.documentElement.setAttribute('data-theme', theme);
         var css = '';
         if (theme === 'tech') {
-            css = 'body{background:#090014!important}header{background:rgba(9,0,20,0.95)!important;border-bottom:2px solid #FF00FF!important}.bg-white,.post-card,.auth-card,.profile-header,.stat-card,.quick-item,.data-table{background:rgba(26,16,60,0.80)!important;border:1px solid #2D1B4E!important;border-top:2px solid #00FFFF!important;border-radius:0!important}';
+            css = 'body{background:#090014!important}header{background:rgba(9,0,20,0.95)!important;border-bottom:2px solid #FF00FF!important}.bg-white,.post-card,.auth-card,.profile-header,.stat-card,.quick-item,.data-table{background:rgba(26,16,60,0.80)!important;border:1px solid #2D1B4E!important;border-top:2px solid #00FFFF!important;border-radius:0!important}.stat-header{background:rgba(0,255,255,0.06)!important;border-bottom:1px solid rgba(0,255,255,0.15)!important}.stat-bars .bg-blue-100,.stat-bars .bg-green-100{background:rgba(0,255,255,0.10)!important}.stat-bars .bg-purple-100{background:rgba(255,0,255,0.15)!important}.stat-bars .bg-orange-100{background:rgba(255,153,0,0.12)!important}.stat-bars .bg-blue-400,.stat-bars .bg-green-400{background:#00FFFF!important}.stat-bars .bg-purple-400{background:#FF00FF!important}.stat-bars .bg-orange-400{background:#FF9900!important}';
         } else if (theme === 'doodle') {
             css = 'body{background-image:linear-gradient(90deg,rgba(180,140,80,0.05) 1px,transparent 1px),linear-gradient(rgba(180,140,80,0.05) 1px,transparent 1px)!important;background-size:20px 20px!important}.bg-white,.post-card,.auth-card,.profile-header,.stat-card,.quick-item,.data-table{background:#fffdf5!important}.post-card{border-radius:255px 15px 225px 15px/15px 225px 15px 255px!important;border:2.5px dashed #d8cdb8!important}.stat-header{background:#f5f0e5!important}.stat-bars .bg-blue-100,.stat-bars .bg-green-100,.stat-bars .bg-purple-100,.stat-bars .bg-orange-100{background:#ede5d5!important}.stat-bars .bg-blue-400{background:#b8926e!important}.stat-bars .bg-green-400{background:#7a965a!important}.stat-bars .bg-purple-400{background:#a07aa0!important}.stat-bars .bg-orange-400{background:#b87a55!important}.rank-page .bg-blue-50{background:rgba(245,240,229,0.6)!important}.rank-avatar{background-image:none!important;background-color:#d4c5a0!important;color:#6b5b3e!important}.rank-page .text-blue-500{color:#8b7a5a!important}.rank-page .text-orange-500{color:#b87a55!important}';
         }
@@ -59,15 +59,15 @@
             </a>
             </c:if>
             <!-- 主题切换器 -->
-            <div class="flex items-center border-l border-gray-200 pl-2 ml-1 gap-1">
-                <button class="theme-btn" data-theme="default" onclick="applyTheme('default')" title="默认风">
+            <div class="flex items-center border-l border-gray-200 pl-3 ml-2 gap-1">
+                <button class="theme-btn" data-theme="default" onclick="applyTheme('default')" title="默认风格">
                     <i class="fa fa-sun-o"></i>
                 </button>
-                <button class="theme-btn" data-theme="tech" onclick="applyTheme('tech')" title="科技风">
+                <button class="theme-btn" data-theme="tech" onclick="applyTheme('tech')" title="科技风格">
                     <i class="fa fa-moon-o"></i>
                 </button>
-                <button class="theme-btn" data-theme="doodle" onclick="applyTheme('doodle')" title="涂鸦风">
-                    <i class="fa fa-pencil-square-o"></i>
+                <button class="theme-btn" data-theme="doodle" onclick="applyTheme('doodle')" title="手绘涂鸦风格">
+                    <i class="fa fa-magic"></i>
                 </button>
             </div>
         </div>
@@ -243,8 +243,8 @@
                 request.setAttribute("statsMax", statMax == 0 ? 1 : statMax);
             %>
             <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                <div class="px-5 py-4 border-b border-gray-100 bg-gradient-to-r from-orange-50 to-amber-50 stat-header">
-                    <h3 class="text-sm font-semibold text-gray-800"><i class="fa fa-bar-chart mr-1.5 text-orange-500"></i> 实时数据</h3>
+                <div class="px-5 py-4 border-b border-gray-100 bg-blue-50 stat-header">
+                    <h3 class="text-sm font-semibold text-gray-800"><i class="fa fa-bar-chart mr-1.5 text-blue-500"></i> 实时数据</h3>
                 </div>
                 <div class="px-5 py-4 space-y-3 stat-bars">
                     <div>
@@ -289,8 +289,8 @@
             <!-- 热门标签 -->
             <c:if test="${not empty statsHotKeywords}">
                 <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                    <div class="px-5 py-4 border-b border-gray-100 bg-gradient-to-r from-orange-50 to-amber-50 stat-header">
-                        <h3 class="text-sm font-semibold text-gray-800"><i class="fa fa-tags mr-1.5 text-orange-500"></i> 热门标签</h3>
+                    <div class="px-5 py-4 border-b border-gray-100 bg-blue-50 stat-header">
+                        <h3 class="text-sm font-semibold text-gray-800"><i class="fa fa-tags mr-1.5 text-blue-500"></i> 热门标签</h3>
                     </div>
                     <div class="px-5 py-5 flex flex-wrap gap-2">
                         <c:forEach var="kw" items="${statsHotKeywords}" varStatus="vs">

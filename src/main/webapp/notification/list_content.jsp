@@ -30,8 +30,16 @@
         <c:otherwise>
             <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden divide-y divide-gray-50">
                 <c:forEach var="notif" items="${notificationList}">
-                    <a href="${pageContext.request.contextPath}/notification/detail?id=${notif.id}"
-                       class="flex items-start gap-3 px-5 py-4 ${notif.isRead ? 'bg-white hover:bg-gray-50' : 'bg-blue-50/50 hover:bg-blue-100/50'} transition no-underline block">
+                    <c:choose>
+                        <c:when test="${not empty notif.targetUrl}">
+                            <c:set var="notifLink" value="${pageContext.request.contextPath}${notif.targetUrl}" />
+                        </c:when>
+                        <c:otherwise>
+                            <c:set var="notifLink" value="${pageContext.request.contextPath}/notification/detail?id=${notif.id}" />
+                        </c:otherwise>
+                    </c:choose>
+                    <a href="${notifLink}" data-notif-id="${notif.id}"
+                       class="flex items-start gap-3 px-5 py-4 ${notif.isRead ? 'bg-white hover:bg-gray-50' : 'bg-blue-50/50 hover:bg-blue-100/50'} transition no-underline block ${not empty notif.targetUrl ? 'notif-mark-read' : ''}">
                         <div class="mt-0.5 shrink-0">
                             <c:choose>
                                 <c:when test="${notif.type == 'report_result'}">
@@ -113,3 +121,22 @@
         </div>
     </c:if>
 </div>
+
+<script>
+// 点击通知直接跳转帖子时，先标记已读
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.notif-mark-read').forEach(function(el) {
+        el.addEventListener('click', function() {
+            var id = this.getAttribute('data-notif-id');
+            if (id) {
+                fetch('${pageContext.request.contextPath}/notification/markRead', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    body: 'id=' + id,
+                    keepalive: true
+                });
+            }
+        });
+    });
+});
+</script>

@@ -55,7 +55,7 @@ public class HotServlet extends HttpServlet {
     }
 
     private int countHotPosts() {
-        String sql = "SELECT COUNT(*) FROM posts WHERE is_deleted = 0";
+        String sql = "SELECT COUNT(*) FROM posts WHERE is_deleted = 0 AND is_draft = 0";
         try (Connection conn = DBUtil.getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
@@ -76,7 +76,7 @@ public class HotServlet extends HttpServlet {
                      "FROM posts p " +
                      "JOIN users u ON p.user_id = u.id " +
                      "JOIN categories c ON p.category_id = c.id " +
-                     "WHERE p.is_deleted = 0 " +
+                     "WHERE p.is_deleted = 0 AND p.is_draft = 0 " +
                      "ORDER BY p.view_count DESC, p.created_at DESC " +
                      "LIMIT ? OFFSET ?";
         try (Connection conn = DBUtil.getConnection();

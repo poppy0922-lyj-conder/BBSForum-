@@ -25,6 +25,7 @@
 
     <form action="${pageContext.request.contextPath}/post/edit" method="post" enctype="multipart/form-data" id="editForm">
         <input type="hidden" name="id" value="${post.id}">
+        <input type="hidden" name="action" id="editAction" value="save">
 
         <!-- 板块选择 -->
         <div class="mb-4">
@@ -137,9 +138,14 @@
 
         <!-- 按钮 -->
         <div class="flex items-center gap-3">
-            <button type="submit" id="editSubmitBtn" class="inline-flex items-center gap-1.5 px-6 py-2.5 bg-blue-500 text-white text-sm font-medium rounded-md hover:bg-blue-600 transition cursor-pointer border-none">
+            <button type="submit" id="editSubmitBtn" class="inline-flex items-center gap-1.5 px-6 py-2.5 bg-blue-500 text-white text-sm font-medium rounded-md hover:bg-blue-600 transition cursor-pointer border-none" onclick="document.getElementById('editAction').value='save'">
                 <i class="fa fa-save"></i> 保存修改
             </button>
+            <c:if test="${post.isDraft}">
+            <button type="submit" id="editPublishBtn" class="inline-flex items-center gap-1.5 px-6 py-2.5 bg-green-500 text-white text-sm font-medium rounded-md hover:bg-green-600 transition cursor-pointer border-none" onclick="document.getElementById('editAction').value='publish'">
+                <i class="fa fa-check"></i> 发布草稿
+            </button>
+            </c:if>
             <span class="text-xs text-gray-400">按 Ctrl+Enter 快速保存</span>
             <a href="${pageContext.request.contextPath}/post/detail?id=${post.id}" class="inline-flex items-center gap-1 px-5 py-2.5 bg-gray-200 text-gray-600 text-sm rounded-md hover:bg-gray-300 no-underline transition ml-auto">
                 取消

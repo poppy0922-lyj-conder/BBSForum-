@@ -322,3 +322,55 @@ CREATE TABLE IF NOT EXISTS notifications (
     FOREIGN KEY (user_id) REFERENCES users(id),
     INDEX idx_user_read (user_id, is_read)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='站内通知表';
+
+-- ============================================
+-- 13. 帖子草稿字段（迁移补丁）
+-- ============================================
+SET @col_exists = (SELECT COUNT(*) FROM information_schema.COLUMNS
+                   WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = 'posts' AND COLUMN_NAME = 'is_draft');
+SET @sql = IF(@col_exists = 0,
+    'ALTER TABLE posts ADD COLUMN is_draft TINYINT DEFAULT 0 COMMENT ''0=已发布 1=草稿'' AFTER is_deleted',
+    'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @idx_exists = (SELECT COUNT(*) FROM information_schema.STATISTICS
+                   WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = 'posts' AND INDEX_NAME = 'idx_draft');
+SET @sql = IF(@idx_exists = 0,
+    'CREATE INDEX idx_draft ON posts(is_draft)',
+    'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- ============================================
+-- 14. 回复嵌套字段（迁移补丁）
+-- ============================================
+SET @col_exists = (SELECT COUNT(*) FROM information_schema.COLUMNS
+                   WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = 'replies' AND COLUMN_NAME = 'parent_id');
+SET @sql = IF(@col_exists = 0,
+    'ALTER TABLE replies ADD COLUMN parent_id INT DEFAULT NULL COMMENT ''父回复ID，NULL=直接回复帖子'' AFTER post_id',
+    'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- 添加外键约束（如果列已存在但外键不存在）
+SET @fk_exists = (SELECT COUNT(*) FROM information_schema.TABLE_CONSTRAINTS
+                  WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = 'replies' AND CONSTRAINT_NAME = 'replies_ibfk_3');
+SET @sql = IF(@fk_exists = 0,
+    'ALTER TABLE replies ADD FOREIGN KEY (parent_id) REFERENCES replies(id) ON DELETE SET NULL',
+    'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @idx_exists = (SELECT COUNT(*) FROM information_schema.STATISTICS
+                   WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = 'replies' AND INDEX_NAME = 'idx_parent');
+SET @sql = IF(@idx_exists = 0,
+    'CREATE INDEX idx_parent ON replies(parent_id)',
+    'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- ============================================
+-- 15. 通知跳转链接字段（迁移补丁）
+-- ============================================
+SET @col_exists = (SELECT COUNT(*) FROM information_schema.COLUMNS
+                   WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = 'notifications' AND COLUMN_NAME = 'target_url');
+SET @sql = IF(@col_exists = 0,
+    'ALTER TABLE notifications ADD COLUMN target_url VARCHAR(500) DEFAULT NULL COMMENT ''跳转链接，点击通知可跳转到相关帖子'' AFTER content',
+    'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;

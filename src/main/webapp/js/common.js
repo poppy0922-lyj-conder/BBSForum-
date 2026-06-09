@@ -176,6 +176,11 @@ const THEME_COLORS = {
         '.hover\\:bg-blue-600:hover': 'rgba(0,255,255,0.20)',
         '.hover\\:bg-gray-200:hover': 'rgba(255,255,255,0.08)',
         '.hover\\:bg-gray-300:hover': 'rgba(255,255,255,0.12)',
+        // 进度条填充
+        '.bg-blue-400': '#00FFFF',
+        '.bg-green-400': '#00FFFF',
+        '.bg-purple-400': '#FF00FF',
+        '.bg-orange-400': '#FF9900',
     },
     doodle: {
         // 背景色
@@ -280,6 +285,11 @@ const THEME_COLORS = {
         '.hover\\:bg-blue-600:hover': 'rgba(180,130,40,0.15)',
         '.hover\\:bg-gray-200:hover': '#e8ddd0',
         '.hover\\:bg-gray-300:hover': '#ddd2c2',
+        // 进度条填充
+        '.bg-blue-400': '#b8926e',
+        '.bg-green-400': '#7a965a',
+        '.bg-purple-400': '#a07aa0',
+        '.bg-orange-400': '#b87a55',
     }
 };
 
@@ -385,6 +395,12 @@ const THEME_EFFECTS = {
         /* Font Awesome 图标保留 */
         i, .fa, [class*="fa-"] {
             font-family: FontAwesome !important;
+        }
+
+        /* ========== 面板头部 — 微亮青色 ========== */
+        .stat-header {
+            background: rgba(0,255,255,0.06) !important;
+            border-bottom: 1px solid rgba(0,255,255,0.15) !important;
         }
 
         /* ========== 页脚 ========== */
