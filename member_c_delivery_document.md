@@ -119,7 +119,7 @@
 | URL | 方法 | 功能 | 参数 | 返回 |
 |-----|------|------|------|------|
 | `/post/edit` | GET | 显示编辑表单 | id (帖子ID) | 编辑表单 |
-| `/post/edit` | POST | 保存帖子修改 | id, title, content, categoryId | 重定向到帖子详情 |
+| `/post/edit` | POST | 保存帖子修改（支持草稿发布） | id, title, content, categoryId, action(publish/draft) | 重定向到帖子详情或草稿箱 |
 | `/post/delete` | POST | 删除帖子 | id (帖子ID) | 重定向到首页 |
 
 ### 用户管理 API（新增）

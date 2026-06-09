@@ -93,7 +93,7 @@
 **功能描述**：
 - 管理员处理举报后，自动通知举报人处理结果（通过/驳回）
 - 举报通过时，自动通知被举报人（内容作者）内容已被删除
-- 通知类型：`report_result`（举报结果）、`content_deleted`（内容删除）
+- 通知类型：`report_result`（举报结果）、`content_deleted`（内容删除）、`new_reply`（新回复）、`new_like`（新点赞）、`new_favorite`（新收藏）、`reply_reply`（回复回复）
 - 顶部导航栏显示未读通知红点及数量（AJAX 轮询，60秒刷新）
 - 通知列表页面分页展示，支持"全部已读"
 - 点击通知进入详情页查看举报完整信息（举报人、原因、处理结果、备注）
@@ -214,14 +214,27 @@ CREATE TABLE IF NOT EXISTS reports (
 CREATE TABLE IF NOT EXISTS notifications (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL COMMENT '接收人ID',
-    type VARCHAR(20) NOT NULL COMMENT '类型：report_result, content_deleted',
+    type VARCHAR(20) NOT NULL COMMENT '通知类型：report_result, content_deleted, new_reply, new_like, new_favorite, reply_reply',
     content VARCHAR(500) NOT NULL COMMENT '通知内容',
+    target_url VARCHAR(500) DEFAULT NULL COMMENT '通知关联跳转链接（组长新增，用于互动通知跳转帖子）',
     is_read TINYINT DEFAULT 0 COMMENT '0未读 1已读',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id),
     INDEX idx_user_read (user_id, is_read)
 );
 ```
+
+**字段说明**：
+
+| 字段 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| id | INT | AUTO_INCREMENT | 通知唯一标识 |
+| user_id | INT | NOT NULL | 接收人ID |
+| type | VARCHAR(20) | NOT NULL | 通知类型：report_result, content_deleted, new_reply, new_like, new_favorite, reply_reply |
+| content | VARCHAR(500) | NOT NULL | 通知内容 |
+| target_url | VARCHAR(500) | DEFAULT NULL | 通知关联的跳转链接 |
+| is_read | TINYINT | 0 | 0未读 1已读 |
+| created_at | DATETIME | CURRENT_TIMESTAMP | 创建时间 |
 
 ## 核心逻辑说明
 
@@ -441,7 +454,7 @@ return list.size() > 8 ? list.subList(0, 8) : list;
 | 文件 | 说明 |
 |------|------|
 | `src/main/java/com/bbs/controller/ReportServlet.java` | 举报控制器（提交、列表、预览、处理） |
-| `src/main/java/com/bbs/controller/NotificationServlet.java` | 通知控制器（未读数、列表、详情、标记已读） |
+| `src/main/java/com/bbs/controller/NotificationServlet.java` | 通知控制器（未读数、列表、详情、标记已读，新增target_url查询） |
 | `src/main/webapp/admin/report_manage.jsp` | 举报管理布局壳 |
 | `src/main/webapp/admin/report_manage_content.jsp` | 举报管理内容页 |
 | `src/main/webapp/notification/list.jsp` | 通知列表布局壳 |

@@ -169,7 +169,7 @@
 | URL | 方法 | 功能 | 参数 | 返回 |
 |-----|------|------|------|------|
 | `/post/detail` | GET | 查看帖子详情 | `id`(必填,帖子ID) | 帖子详情 JSP |
-| `/post/reply` | POST | 发表回复 | postId, content（需登录） | 重定向回详情页 |
+| `/post/reply` | POST | 发表回复 | postId, content, parentId(可选，嵌套回复)（需登录） | 重定向回详情页 |
 | `/post/edit` | GET | 显示编辑表单 | `id`(必填)（需作者或管理员） | 编辑表单 JSP |
 | `/post/edit` | POST | 保存编辑 | id, title, content, categoryId, keywords, coverImage, imageUrl | 重定向回详情页 |
 | `/post/delete` | GET | 删除帖子 | `id`(必填)（需作者或管理员） | 重定向到首页 |
@@ -231,9 +231,11 @@ CREATE TABLE replies (
     content     TEXT NOT NULL COMMENT '回复内容',
     user_id     INT NOT NULL COMMENT '回复者ID',
     post_id     INT NOT NULL COMMENT '所属帖子ID',
+    parent_id   INT DEFAULT NULL COMMENT '父回复ID，NULL=直接回复帖子',
     created_at  DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '回复时间',
     FOREIGN KEY (user_id) REFERENCES users(id),
-    FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE
+    FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE,
+    FOREIGN KEY (parent_id) REFERENCES replies(id) ON DELETE SET NULL
 );
 ```
 
@@ -545,6 +547,102 @@ GET /cover/42?title=J
 - `src/main/java/com/bbs/controller/InteractionServlet.java` — 点赞+3
 - `src/main/java/com/bbs/controller/UserServlet.java` — 登录+2
 
+### 11. 帖子草稿箱
+
+**功能描述**：
+- 发帖页面新增"保存草稿"按钮，将帖子保存为草稿（不发布，不发放+10积分）
+- 草稿保存在 `posts` 表中，`is_draft=1` 标识
+- 草稿箱页面列出当前用户所有草稿，显示标题摘要、最后修改时间、所属板块
+- 每条草稿支持"继续编辑"（进入编辑页）和"删除草稿"操作
+- 编辑草稿并发布时，`is_draft` 置为 0 并发放 +10 积分
+- 所有公开查询（首页、板块页、搜索）过滤 `is_draft=0`，草稿对他人不可见
+
+**相关文件**：
+- `src/main/java/com/bbs/controller/PostServlet.java` — `handleDrafts()` 草稿列表、`handleCreatePost()` action参数、`handleEditPost()` 草稿发布
+- `src/main/webapp/user/drafts.jsp` — 草稿箱页面模板
+- `src/main/webapp/user/drafts_content.jsp` — 草稿箱列表视图
+- `src/main/webapp/post/create_content.jsp` — 发帖页新增"保存草稿"按钮
+- `src/main/webapp/post/edit_content.jsp` — 编辑页支持草稿发布
+
+**API 端点**：
+
+| URL | 方法 | 功能 | 参数 | 返回 |
+|-----|------|------|------|------|
+| `/post/drafts` | GET | 查看个人草稿列表 | 无（需登录） | 草稿箱 JSP |
+| `/post/create` | POST | 保存草稿 | title, content, categoryId, keywords, action=draft | 重定向到草稿箱 |
+
+### 12. 嵌套回复
+
+**功能描述**：
+- 帖子详情页每条回复右侧新增"回复"按钮，点击后进入对该回复的回复模式
+- 回复表单显示"正在回复 @username"提示条，含取消回复按钮
+- 子回复（有 parentId 的）在父回复下方缩进显示（`ml-8` + 左侧蓝色竖线装饰）
+- 子回复内容前显示 `@parentAuthorName` 标签
+- 被回复的用户收到新的 `reply_reply` 类型通知
+- 回复列表统一按时间正序排列，不额外分页
+
+**相关文件**：
+- `src/main/java/com/bbs/controller/PostServlet.java` — `handleReply()` 读取 parentId 参数、`handleDetail()` 构建回复树结构
+- `src/main/webapp/post/detail_content.jsp` — 回复树渲染、嵌套回复缩进样式、回复按钮JS
+
+**后端数据结构**（回复树构建逻辑）：
+```java
+// 在 handleDetail() 中将所有回复分为父回复和子回复
+// 父回复（parentId == null）按时间排序
+// 子回复跟在对应父回复之后
+Map<Integer, List<Map<String, Object>>> childrenMap = new HashMap<>();
+List<Map<String, Object>> parentReplies = new ArrayList<>();
+for (reply : allReplies) {
+    if (reply.parentId == null) parentReplies.add(reply);
+    else childrenMap.computeIfAbsent(reply.parentId, ...).add(reply);
+}
+// 第一层按时间正序，子回复跟在父回复后
+```
+
+**API 端点更新**：
+
+| URL | 方法 | 功能 | 参数 | 返回 |
+|-----|------|------|------|------|
+| `/post/reply` | POST | 发表回复（含嵌套） | postId, content, parentId(可选) | 重定向回详情页 |
+
+### 13. 通知跳转
+
+**功能描述**：
+- 互动相关通知（新回复、新点赞、新收藏、回复回复）附带 `target_url` 字段
+- 通知列表页识别 `target_url`：有则直接跳转到对应帖子详情页，无则进入通知详情页
+- 通知列表点击时先通过 AJAX 标记该条已读（keepalive: true），再跳转
+- 通知详情页显示"查看相关帖子"按钮，可跳转到对应帖子
+- 通知详情页保留原有的举报关联记录查询逻辑
+
+**数据库变更**：`notifications` 表新增 `target_url` 字段
+
+**相关文件**：
+- `src/main/java/com/bbs/controller/PostServlet.java` — `handleReply()` 插入通知时附带 target_url
+- `src/main/java/com/bbs/controller/InteractionServlet.java` — insertNotification() 新增 targetUrl 参数
+- `src/main/java/com/bbs/controller/NotificationServlet.java` — 列表和详情查询增加 target_url 列
+- `src/main/webapp/notification/list_content.jsp` — 根据 target_url 条件分支跳转
+- `src/main/webapp/notification/detail_content.jsp` — 新增"查看相关帖子"按钮
+
+**API 端点更新**：
+
+| URL | 方法 | 功能 | 参数 | 返回 |
+|-----|------|------|------|------|
+| `/notification/list` | GET | 通知列表 | page，通知含targetUrl字段 | 列表 JSP |
+| `/notification/detail` | GET | 通知详情 | id，含targetUrl和查看帖子按钮 | 详情 JSP |
+
+### 通知系统集成（新通知类型）
+
+组长新增以下通知类型的写入：
+
+| 通知类型 | 触发场景 | 说明 |
+|----------|----------|------|
+| `new_reply` | 有人回复你的帖子 | 通知帖子作者，附带帖子 target_url |
+| `new_like` | 有人点赞你的帖子 | 通知帖子作者，附带帖子 target_url |
+| `new_favorite` | 有人收藏你的帖子 | 通知帖子作者，附带帖子 target_url |
+| `reply_reply` | 有人回复你的回复 | 通知被回复用户，附带帖子 target_url |
+
+---
+
 ## API 端点补充
 
 ### 封面图片 API
@@ -557,8 +655,8 @@ GET /cover/42?title=J
 
 | URL | 方法 | 功能 | 参数 | 返回 |
 |-----|------|------|------|------|
-| `/post/create` | POST | 发帖+10分 | title, content, categoryId, keywords | 重定向到详情页 |
-| `/post/reply` | POST | 回复+2分 | postId, content | 重定向回详情页 |
+| `/post/create` | POST | 发帖+10分 / 保存草稿 | title, content, categoryId, keywords, action(publish/draft) | 重定向到详情页或草稿箱 |
+| `/post/reply` | POST | 回复+2分（含嵌套回复） | postId, content, parentId(可选) | 重定向回详情页 |
 | `/interact/like` | POST | 点赞+3分 | postId | JSON `{"ok":true,"action":"like/unlike","count":N}` |
 
 ## 文件新增

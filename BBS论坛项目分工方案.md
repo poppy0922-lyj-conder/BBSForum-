@@ -35,6 +35,9 @@
 | 中 | 热门排行 | 按浏览量排序的热度榜 | ✓ 已完成 |
 | 中 | AI智能总结 | 调用AI接口生成帖子摘要 | ✓ 已完成 |
 | 中 | 实时数据面板 | 右侧栏展示帖子数/用户数/评论数/需求数 | ✓ 已完成 |
+| 中 | 帖子草稿箱 | 保存草稿/草稿列表/继续编辑发布 | ✓ 已完成 |
+| 中 | 嵌套回复 | 回复内回复/缩进显示/@引用通知 | ✓ 已完成 |
+| 高 | 通知跳转 | 点击通知直接跳转对应帖子 | ✓ 已完成 |
 | 高 | 仪表盘图表 | 管理员后台交互式Chart.js图表（板块分布环形图+发帖量折线图+注册量折线图） | ✓ 已完成 |
 | 中 | 用户管理模块 | 管理员管理用户（分页/搜索/编辑/角色切换/删除） | ✓ 已完成 |
 | 中 | 热门关键词 | 帖子关键词聚合展示，点击搜索 | ✓ 已完成 |
@@ -55,15 +58,15 @@
 
 ## 二、角色与模块分工
 
-### 组长：帖子核心功能 + 公共架构 + 创新功能（25%）
+### 组长：帖子核心功能 + 公共架构 + 创新功能 + 草稿箱 + 嵌套回复 + 通知跳转（25%）
 
 | 开发层面 | 具体内容 |
 |----------|----------|
-| **涉及表** | 帖子表（posts）、回复表（replies）、关注表（user_follows）、点赞表（post_likes）、收藏表（post_favorites）建表 |
-| **后端接口** | 发布帖子、回复帖子、帖子列表/详情查询、删除帖子、关注/取消关注、点赞/取消点赞、收藏/取消收藏、AI总结、搜索结果、封面图生成(SVG)、积分操作(发帖+10/回复+2/点赞+3) |
-| **前端页面** | 发帖页面、帖子详情页（含回复列表/关注/点赞/收藏）、首页帖子列表、帖子搜索、布局模板（导航栏/侧边栏/底部栏）、统一弹窗系统 |
+| **涉及表** | 帖子表（posts）、回复表（replies）、关注表（user_follows）、点赞表（post_likes）、收藏表（post_favorites）建表。posts新增is_draft，replies新增parent_id |
+| **后端接口** | 发布帖子、保存草稿、草稿箱列表、回复帖子（含嵌套回复parentId）、帖子列表/详情查询（过滤草稿）、删除帖子、关注/取消关注、点赞/取消点赞、收藏/取消收藏、AI总结、搜索结果、封面图生成(SVG)、积分操作(发帖+10/回复+2/点赞+3)、通知插入（new_reply/new_like/new_favorite/reply_reply类型携带target_url） |
+| **前端页面** | 发帖页面（含"保存草稿"按钮）、帖子详情页（含嵌套回复缩进显示+回复按钮+@引用）、首页帖子列表、帖子搜索、草稿箱页面、布局模板（导航栏/侧边栏/底部栏）、统一弹窗系统、通知列表target_url跳转 |
 | **公共架构** | 项目初始化、目录结构、数据库连接配置、全局样式、路由配置、代码合并、实时数据面板、热门关键词、config配置抽取 |
-| **加分创新** | AI总结功能、关注/点赞/收藏互动系统、实时数据面板、热门关键词聚合、配置信息脱敏、封面图自动生成、统一弹窗系统、积分系统集成 |
+| **加分创新** | AI总结功能、关注/点赞/收藏互动系统、实时数据面板、热门关键词聚合、配置信息脱敏、封面图自动生成、统一弹窗系统、积分系统集成、帖子草稿箱、嵌套回复、通知跳转 |
 
 **涉及文件清单**：
 
@@ -242,14 +245,14 @@ src/main/webapp/
 ## 三、工作量占比
 
 ```
-组长（帖子核心+架构+创新+积分+封面+弹窗）：    *************************    25%
+组长（帖子核心+架构+创新+积分+封面+弹窗+草稿箱+嵌套回复+通知跳转）：    *************************    25%
 组员A（置顶+加精+搜索+热度榜+举报+软删除+通知）：********************               20%
 组员B（用户系统+签到+头像+个人中心扩展+鉴权拦截）：*******************              19%
 组员C（板块+编辑+展示+用户管理+仪表盘图表+后台UI）：*******************              19%
 组员D（需求+积分+排行榜）：                  *****************                17%
 ```
 
-> 组长新增创新功能加分项（关注/点赞/收藏/AI总结/热度榜/实时数据/热门标签/封面生成/统一弹窗/积分集成等）。
+> 组长新增创新功能加分项（关注/点赞/收藏/AI总结/热度榜/实时数据/热门标签/封面生成/统一弹窗/积分集成/帖子草稿箱/嵌套回复/通知跳转等）。
 
 ---
 
@@ -257,7 +260,7 @@ src/main/webapp/
 
 | 成员 | 涉及表数 | 后端接口 | 前端页面 | 积分相关 |
 |------|:----------:|:--------:|:--------:|:--------:|
-| 组长 | x5 | x11 | x5 | 发帖+10、回复+2、点赞+3、收藏+5 |
+| 组长 | x5 | x14 | x8 | 发帖+10、回复+2、点赞+3、收藏+5 |
 | 组员A | x3 | x8 | x7 | 搜索列表展示积分 |
 | 组员B | x3 | x10 | x10 | 签到+5~15、登录+2 |
 | 组员C | x2 | x10 | x8 | 采纳页面交互 |
@@ -370,6 +373,7 @@ java -cp "target/classes;target/dependency/*" com.bbs.Main
 | like_count | INT | 点赞数，默认0 |
 | favorite_count | INT | 收藏数，默认0 |
 | view_count | INT | 浏览次数，默认0 |
+| is_draft | TINYINT | 草稿标识：0=已发布 1=草稿（组长新增） |
 | created_at | DATETIME | 发布时间 |
 | updated_at | DATETIME | 修改时间 |
 
@@ -381,6 +385,7 @@ java -cp "target/classes;target/dependency/*" com.bbs.Main
 | content | TEXT | 回复内容 |
 | user_id | INT | 回复者ID（外键） |
 | post_id | INT | 所属帖子ID（外键） |
+| parent_id | INT | 父回复ID，NULL=直接回复帖子（自引用外键） |
 | created_at | DATETIME | 回复时间 |
 
 ### 需求表（demands）—— 组员D负责
@@ -442,14 +447,15 @@ java -cp "target/classes;target/dependency/*" com.bbs.Main
 | created_at | DATETIME | 举报时间 |
 | updated_at | DATETIME | 更新时间 |
 
-### 站内通知表（notifications）—— 组员A负责
+### 站内通知表（notifications）—— 组员A+组长负责
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
 | id | INT | 主键自增 |
 | user_id | INT | 接收人ID |
-| type | VARCHAR(20) | 类型：report_result/content_deleted |
+| type | VARCHAR(20) | 类型：report_result/content_deleted/new_reply/new_like/new_favorite/reply_reply |
 | content | VARCHAR(500) | 通知内容 |
+| target_url | VARCHAR(500) | 通知关联的跳转链接（组长新增，用于互动通知） |
 | is_read | TINYINT | 0未读 1已读 |
 | created_at | DATETIME | 创建时间 |
 
@@ -484,7 +490,7 @@ java -cp "target/classes;target/dependency/*" com.bbs.Main
 
 **ER图说明**：
 ```
-users ──< posts ──< replies
+users ──< posts ──< replies ──< replies（自引用，parent_id嵌套回复）
 users ──< demands ──< demand_replies
 users ──< score_logs
 users ──< daily_checkins
@@ -505,10 +511,11 @@ GET    /BBSForum/                                     首页
 GET    /BBSForum/post/detail?id=1                     帖子详情页
 GET    /BBSForum/post/create                          发布帖子页
 POST   /BBSForum/post/create                          提交帖子（+10积分）
+GET    /BBSForum/post/drafts                          草稿箱（组长新增）
 GET    /BBSForum/post/edit?id=1                       编辑帖子页
 POST   /BBSForum/post/edit                            提交编辑
 POST   /BBSForum/post/delete?id=1                     删除帖子
-POST   /BBSForum/post/reply                           回复帖子（+2积分）
+POST   /BBSForum/post/reply                           回复帖子（+2积分，支持parentId嵌套回复）
 POST   /BBSForum/post/aiSummary                       生成AI总结
 GET    /BBSForum/post/search?keyword=xx               搜索帖子
 GET    /BBSForum/cover/42?title=标题                   封面图生成（组长新增）
@@ -702,4 +709,5 @@ POST   /BBSForum/demand/reply                          需求回复（组员D）
 POST   /BBSForum/demand/update                         编辑需求（组员D）
 GET    /BBSForum/demand/update?id=1                    编辑需求页（组员D）
 GET    /BBSForum/score/record                          积分记录（组员D）
+GET    /BBSForum/post/drafts                           草稿箱（组长新增）
 ```

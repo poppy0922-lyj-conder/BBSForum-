@@ -75,7 +75,7 @@ BBSForum/
 mysql -u root -p < database/init.sql
 ```
 
-创建 `bbs_forum` 数据库，包含 11 张表、4 个板块、默认测试账号、8 条示例帖子。
+创建 `bbs_forum` 数据库，包含 13 张表、4 个板块、默认测试账号、8 条示例帖子。
 
 ### 2. 配置连接信息
 
@@ -216,17 +216,23 @@ mvn clean compile
 | user_follows | 关注表（关注者/被关注者） | 0 | 组长 |
 | post_likes | 点赞表（用户/帖子） | 0 | 组长 |
 | post_favorites | 收藏表（用户/帖子） | 0 | 组长 |
+| reports | 举报记录表（举报人/类型/原因/状态） | 0 | 组员A |
+| notifications | 通知表（类型/内容/target_url/已读状态） | 0 | 组员A+组长 |
 
 ## 文档索引
 
 | 文档 | 说明 |
 |------|------|
-| `整体需求分析.md` | 15项功能需求 + 非功能需求 + 用例分析 |
-| `数据库设计文档.md` | ER图 + 11张表结构 + 索引 + 事务设计 |
+| `整体需求分析.md` | 22项功能需求 + 非功能需求 + 用例分析 |
+| `数据库设计文档.md` | ER图 + 13张表结构 + 索引 + 事务设计 |
 | `接口设计文档.md` | 全部API端点表格 + 参数 + 返回格式 |
 | `设计文档.md` | 系统架构 + 模块设计 + 安全 + 并发 + 缓存策略 |
 | `BBS论坛项目分工方案.md` | 详细分工 + 工作量占比 + 开发规范 |
 | `member_s_delivery_document.md` | 组长功能交付说明 |
+| `member_a_delivery_document.md` | 组员A功能交付说明 |
+| `member_b_delivery_document.md` | 组员B功能交付说明 |
+| `member_c_delivery_document.md` | 组员C功能交付说明 |
+| `member_d_delivery_document.md` | 组员D功能交付说明 |
 
 ## 前端说明
 
