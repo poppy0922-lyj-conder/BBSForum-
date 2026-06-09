@@ -701,7 +701,8 @@ function applyTheme(name) {
         style.textContent = css;
         document.head.appendChild(style);
     }
-    // 新样式注入后移除旧的防闪样式
+    // 强制重排确保新样式已生效后再移除旧的，避免频闪
+    void document.body.offsetHeight;
     if (existing) existing.remove();
     if (flashGuard) flashGuard.remove();
 
@@ -730,3 +731,34 @@ function initTheme() {
 
 // DOMContentLoaded 时自动初始化
 document.addEventListener('DOMContentLoaded', initTheme);
+
+// ============================================
+// 时间友好显示工具
+// ============================================
+function timeAgo(dateStr) {
+    if (!dateStr) return '';
+    // 把 "2026-06-09 14:30:00.0" 转成标准格式
+    var d = new Date(dateStr.replace(' ', 'T'));
+    if (isNaN(d.getTime())) return dateStr;
+    var now = new Date();
+    var diff = Math.floor((now - d) / 1000); // 秒差
+    if (diff < 60) return '刚刚';
+    if (diff < 3600) return Math.floor(diff / 60) + '分钟前';
+    if (diff < 86400) return Math.floor(diff / 3600) + '小时前';
+    var days = Math.floor(diff / 86400);
+    if (days === 1) return '昨天';
+    if (days < 7) return days + '天前';
+    if (days < 30) return Math.floor(days / 7) + '周前';
+    var month = String(d.getMonth() + 1).padStart(2, '0');
+    var day = String(d.getDate()).padStart(2, '0');
+    return month + '-' + day;
+}
+
+// 页面加载后格式化所有 data-time-ago 元素
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('[data-time-ago]').forEach(function(el) {
+        var raw = el.getAttribute('data-time-ago');
+        if (raw) el.textContent = timeAgo(raw);
+    });
+});
+

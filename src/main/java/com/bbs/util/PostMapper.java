@@ -14,6 +14,12 @@ import com.bbs.util.ContentUtil;
  */
 public class PostMapper {
 
+    private static String fmtTimestamp(Timestamp ts) {
+        if (ts == null) return "";
+        String s = ts.toString();
+        return s.length() > 16 ? s.substring(0, 16) : s;
+    }
+
     /** 映射帖子列表行（含作者名、板块名、摘要） */
     public static Map<String, Object> mapPostRow(ResultSet rs) throws SQLException {
         Map<String, Object> post = new HashMap<>();
@@ -26,7 +32,7 @@ public class PostMapper {
         post.put("viewCount", rs.getInt("view_count"));
         post.put("likeCount", rs.getInt("like_count"));
         post.put("favoriteCount", rs.getInt("favorite_count"));
-        post.put("createdAt", rs.getTimestamp("created_at").toString());
+        post.put("createdAt", fmtTimestamp(rs.getTimestamp("created_at")));
         post.put("authorName", rs.getString("author_name"));
         post.put("categoryName", rs.getString("category_name"));
         post.put("imageUrl", rs.getString("image_url") == null ? "" : rs.getString("image_url"));
@@ -42,7 +48,7 @@ public class PostMapper {
         post.put("id", rs.getInt("id"));
         post.put("title", rs.getString("title"));
         post.put("viewCount", rs.getInt("view_count"));
-        post.put("createdAt", rs.getTimestamp("created_at").toString());
+        post.put("createdAt", fmtTimestamp(rs.getTimestamp("created_at")));
         post.put("authorName", rs.getString("author_name"));
         return post;
     }
@@ -66,8 +72,7 @@ public class PostMapper {
         user.put("jobLocation", rs.getString("job_location") == null ? "" : rs.getString("job_location"));
         user.put("role", rs.getString("role"));
         user.put("score", rs.getInt("score"));
-        Timestamp createdAt = rs.getTimestamp("created_at");
-        user.put("createdAt", createdAt == null ? "" : createdAt.toString());
+        user.put("createdAt", fmtTimestamp(rs.getTimestamp("created_at")));
         return user;
     }
 }

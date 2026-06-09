@@ -34,13 +34,14 @@ public class InteractionServlet extends HttpServlet {
             return;
         }
         int userId = ((Number) user.get("id")).intValue();
+        String username = (String) user.get("username");
         String path = request.getServletPath();
 
         try {
             switch (path) {
                 case "/interact/follow":  doFollow(request, response, userId);  break;
-                case "/interact/like":    doLike(request, response, userId);    break;
-                case "/interact/favorite":doFavorite(request, response, userId);break;
+                case "/interact/like":    doLike(request, response, userId, username);    break;
+                case "/interact/favorite":doFavorite(request, response, userId, username);break;
             }
         } catch (Exception e) {
             LOG.log(Level.SEVERE, "交互操作失败", e);
@@ -84,7 +85,7 @@ public class InteractionServlet extends HttpServlet {
     }
 
     /** 点赞/取消点赞 */
-    private void doLike(HttpServletRequest request, HttpServletResponse response, int userId)
+    private void doLike(HttpServletRequest request, HttpServletResponse response, int userId, String username)
             throws Exception {
         int postId = Integer.parseInt(request.getParameter("postId"));
         try (Connection conn = DBUtil.getConnection()) {
@@ -116,12 +117,20 @@ public class InteractionServlet extends HttpServlet {
 
                 int count = getCount(conn, "SELECT like_count FROM posts WHERE id=?", postId);
                 response.getWriter().write("{\"ok\":true,\"action\":\"like\",\"count\":" + count + "}");
+
+                // 给帖子作者发送点赞通知（不通知自己）
+                int authorId = getPostAuthorId(conn, postId);
+                if (authorId != userId) {
+                    String postTitle = getPostTitle(conn, postId);
+                    String titleShort = postTitle.length() > 20 ? postTitle.substring(0, 20) + "..." : postTitle;
+                    insertNotification(authorId, "new_like", "用户 " + username + " 赞了你的帖子「" + titleShort + "」");
+                }
             }
         }
     }
 
     /** 收藏/取消收藏 */
-    private void doFavorite(HttpServletRequest request, HttpServletResponse response, int userId)
+    private void doFavorite(HttpServletRequest request, HttpServletResponse response, int userId, String username)
             throws Exception {
         int postId = Integer.parseInt(request.getParameter("postId"));
         try (Connection conn = DBUtil.getConnection()) {
@@ -153,6 +162,50 @@ public class InteractionServlet extends HttpServlet {
 
                 int count = getCount(conn, "SELECT favorite_count FROM posts WHERE id=?", postId);
                 response.getWriter().write("{\"ok\":true,\"action\":\"favorite\",\"count\":" + count + "}");
+
+                // 给帖子作者发送收藏通知（不通知自己）
+                int authorId = getPostAuthorId(conn, postId);
+                if (authorId != userId) {
+                    String postTitle = getPostTitle(conn, postId);
+                    String titleShort = postTitle.length() > 20 ? postTitle.substring(0, 20) + "..." : postTitle;
+                    insertNotification(authorId, "new_favorite", "用户 " + username + " 收藏了你的帖子「" + titleShort + "」");
+                }
+            }
+        }
+    }
+
+    /** 插入通知 */
+    private void insertNotification(int receiverId, String type, String content) {
+        String sql = "INSERT INTO notifications (user_id, type, content) VALUES (?, ?, ?)";
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, receiverId);
+            ps.setString(2, type);
+            ps.setString(3, content);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            LOG.log(Level.WARNING, "插入通知失败", e);
+        }
+    }
+
+    /** 获取帖子标题 */
+    private String getPostTitle(Connection conn, int postId) throws SQLException {
+        String sql = "SELECT title FROM posts WHERE id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, postId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getString("title") : "";
+            }
+        }
+    }
+
+    /** 获取帖子作者ID */
+    private int getPostAuthorId(Connection conn, int postId) throws SQLException {
+        String sql = "SELECT user_id FROM posts WHERE id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, postId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getInt("user_id") : 0;
             }
         }
     }

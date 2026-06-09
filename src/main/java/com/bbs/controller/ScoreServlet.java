@@ -115,7 +115,7 @@ public class ScoreServlet extends HttpServlet {
 
         List<Map<String, Object>> rankList = new ArrayList<>();
 
-        String sql = "SELECT username, score FROM users ORDER BY score DESC LIMIT 100";
+        String sql = "SELECT username, avatar, score FROM users ORDER BY score DESC LIMIT 100";
 
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
@@ -124,6 +124,7 @@ public class ScoreServlet extends HttpServlet {
             while (rs.next()) {
                 Map<String, Object> row = new HashMap<>();
                 row.put("username", rs.getString("username"));
+                row.put("avatar", rs.getString("avatar"));
                 row.put("score", rs.getInt("score"));
                 rankList.add(row);
             }

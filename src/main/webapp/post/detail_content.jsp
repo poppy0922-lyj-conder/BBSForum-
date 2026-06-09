@@ -16,14 +16,14 @@
 <div class="flex-1 min-w-0">
 
 <!-- 帖子主体 -->
-<article class="post-card bg-white rounded-lg shadow-sm border border-gray-100 mb-6">
+<article class="post-card bg-white rounded-lg shadow-sm border border-gray-100 mb-6 overflow-hidden">
     <c:url value="/cover/${post.id}" var="coverUrl">
         <c:param name="title" value="${post.title}"/>
     </c:url>
     <c:choose>
         <c:when test="${not empty post.imageUrl}">
-            <div class="w-full bg-gray-100">
-                <img src="${post.imageUrl}" alt="${post.title}" class="w-full max-h-80 object-cover" onerror="this.parentElement.style.display='none'">
+            <div class="w-full bg-gray-100 flex items-center justify-center">
+                <img src="${post.imageUrl}" alt="${post.title}" class="w-full object-contain" onerror="this.parentElement.style.display='none'">
             </div>
         </c:when>
         <c:otherwise>
@@ -61,7 +61,7 @@
                     </button>
                 </c:if>
             </span>
-            <span><i class="fa fa-clock-o mr-1"></i> ${post.createdAt}</span>
+            <span><i class="fa fa-clock-o mr-1"></i> <span data-time-ago="${post.createdAt}">${post.createdAt}</span></span>
             <span><i class="fa fa-eye mr-1"></i> ${post.viewCount} 次浏览</span>
         </div>
         <div id="aiSummaryBox" class="mb-5 <c:if test='${empty sessionScope.user || empty post.aiSummary}'>hidden</c:if>">
@@ -79,6 +79,9 @@
         <div class="flex items-center gap-2 pt-4 border-t border-gray-100 flex-wrap">
             <button onclick="goBack()" class="inline-flex items-center gap-1 px-3 py-1.5 text-sm text-gray-500 bg-gray-100 border border-gray-200 rounded hover:bg-gray-200 transition cursor-pointer">
                 <i class="fa fa-arrow-left"></i> 返回
+            </button>
+            <button onclick="copyShareLink()" class="inline-flex items-center gap-1 px-3 py-1.5 text-sm text-gray-500 bg-white border border-gray-200 rounded hover:bg-gray-100 transition cursor-pointer">
+                <i class="fa fa-link"></i> 复制链接
             </button>
             <button id="aiBtn" onclick="<c:choose><c:when test="${not empty sessionScope.user}">generateAiSummary(${post.id})</c:when><c:otherwise>alert('请先登录后再使用AI总结功能')</c:otherwise></c:choose>" class="inline-flex items-center gap-1 px-3 py-1.5 text-sm text-purple-600 bg-purple-50 border border-purple-200 rounded hover:bg-purple-100 transition cursor-pointer">
                 <i class="fa fa-magic"></i> <span id="aiBtnText">AI总结</span>
@@ -151,7 +154,7 @@
                                 <span class="w-7 h-7 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold ${not empty reply.authorAvatar ? 'hidden' : ''}">${fn:substring(reply.authorName, 0, 1)}</span>
                             </span>
                             <span class="text-sm font-medium text-gray-700">${reply.authorName}</span>
-                            <span class="text-xs text-gray-400">${reply.createdAt}</span>
+                            <span class="text-xs text-gray-400"><span data-time-ago="${reply.createdAt}">${reply.createdAt}</span></span>
                             <span class="text-xs text-gray-300 ml-auto">#${reply.floor}</span>
                         </div>
                         <p class="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">${reply.content}</p>
@@ -247,7 +250,32 @@
         }
     }
 
-    // 当前帖子的状态，供 adminAction 正确显示提示信息
+    // 复制分享链接
+function copyShareLink() {
+    var url = window.location.href;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url).then(function() {
+            alert('链接已复制到剪贴板');
+        }).catch(function() {
+            fallbackCopy(url);
+        });
+    } else {
+        fallbackCopy(url);
+    }
+}
+function fallbackCopy(text) {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.left = '-9999px';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    alert('链接已复制到剪贴板');
+}
+
+// 当前帖子的状态，供 adminAction 正确显示提示信息
     window.currentPost = {
         isTop: ${post.isTop},
         isElite: ${post.isElite}
@@ -471,4 +499,37 @@ function showReportModal(targetType, targetId, btn) {
         }
     });
 }
+</script>
+
+<!-- ========== 图片双击放大灯箱 ========== -->
+<div id="imgLightbox" class="fixed inset-0 z-[100] hidden flex items-center justify-center bg-black/80" style="display:none;" onclick="closeImgLightbox()">
+    <img id="imgLightboxSrc" class="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl" src="" alt="放大图片">
+    <button onclick="closeImgLightbox()" class="absolute top-4 right-4 text-white text-3xl hover:text-gray-300 transition cursor-pointer bg-transparent border-none">&times;</button>
+</div>
+<style>
+#imgLightbox { backdrop-filter: blur(4px); animation: lightboxFadeIn 0.2s ease-out; }
+@keyframes lightboxFadeIn { from { opacity:0; } to { opacity:1; } }
+</style>
+<script>
+// 帖子内容图片双击放大
+(function() {
+    var container = document.querySelector('.post-content');
+    if (!container) return;
+    container.addEventListener('dblclick', function(e) {
+        var target = e.target;
+        if (target.tagName === 'IMG' && target.closest('.post-content')) {
+            var src = target.getAttribute('src') || target.getAttribute('data-src');
+            if (src) {
+                document.getElementById('imgLightboxSrc').src = src;
+                document.getElementById('imgLightbox').style.display = 'flex';
+            }
+        }
+    });
+})();
+function closeImgLightbox() {
+    document.getElementById('imgLightbox').style.display = 'none';
+}
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeImgLightbox();
+});
 </script>

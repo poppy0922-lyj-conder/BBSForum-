@@ -359,6 +359,34 @@ public class PostServlet extends HttpServlet {
 
             // 回复 +2 积分
             addScore(userId, 2, "回复帖子");
+
+            // 给帖子作者发送回复通知（不通知自己）
+            String authorSql = "SELECT user_id FROM posts WHERE id = ?";
+            try (PreparedStatement ps2 = conn.prepareStatement(authorSql)) {
+                ps2.setInt(1, postId);
+                try (ResultSet rs2 = ps2.executeQuery()) {
+                    if (rs2.next()) {
+                        int authorId = rs2.getInt("user_id");
+                        if (authorId != userId) {
+                            String titleSql = "SELECT title FROM posts WHERE id = ?";
+                            try (PreparedStatement ps3 = conn.prepareStatement(titleSql)) {
+                                ps3.setInt(1, postId);
+                                try (ResultSet rs3 = ps3.executeQuery()) {
+                                    String title = rs3.next() ? rs3.getString("title") : "";
+                                    String titleShort = title.length() > 20 ? title.substring(0, 20) + "..." : title;
+                                    String notifSql = "INSERT INTO notifications (user_id, type, content) VALUES (?, ?, ?)";
+                                    try (PreparedStatement ps4 = conn.prepareStatement(notifSql)) {
+                                        ps4.setInt(1, authorId);
+                                        ps4.setString(2, "new_reply");
+                                        ps4.setString(3, "用户 " + user.get("username") + " 回复了你的帖子「" + titleShort + "」");
+                                        ps4.executeUpdate();
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         } catch (SQLException e) {
             LOG.log(Level.SEVERE, "发表回复失败, postId=" + postId, e);
         }

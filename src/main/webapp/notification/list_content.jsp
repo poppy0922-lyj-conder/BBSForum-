@@ -44,6 +44,21 @@
                                         <i class="fa fa-trash text-sm"></i>
                                     </span>
                                 </c:when>
+                                <c:when test="${notif.type == 'new_reply'}">
+                                    <span class="w-8 h-8 bg-green-100 text-green-500 rounded-full flex items-center justify-center">
+                                        <i class="fa fa-comment text-sm"></i>
+                                    </span>
+                                </c:when>
+                                <c:when test="${notif.type == 'new_like'}">
+                                    <span class="w-8 h-8 bg-red-100 text-red-500 rounded-full flex items-center justify-center">
+                                        <i class="fa fa-heart text-sm"></i>
+                                    </span>
+                                </c:when>
+                                <c:when test="${notif.type == 'new_favorite'}">
+                                    <span class="w-8 h-8 bg-yellow-100 text-yellow-500 rounded-full flex items-center justify-center">
+                                        <i class="fa fa-bookmark text-sm"></i>
+                                    </span>
+                                </c:when>
                                 <c:otherwise>
                                     <span class="w-8 h-8 bg-gray-100 text-gray-500 rounded-full flex items-center justify-center">
                                         <i class="fa fa-info-circle text-sm"></i>

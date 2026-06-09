@@ -27,6 +27,21 @@
                             <i class="fa fa-trash text-xl"></i>
                         </span>
                     </c:when>
+                    <c:when test="${notification.type == 'new_reply'}">
+                        <span class="w-12 h-12 bg-green-100 text-green-500 rounded-full flex items-center justify-center">
+                            <i class="fa fa-comment text-xl"></i>
+                        </span>
+                    </c:when>
+                    <c:when test="${notification.type == 'new_like'}">
+                        <span class="w-12 h-12 bg-red-100 text-red-500 rounded-full flex items-center justify-center">
+                            <i class="fa fa-heart text-xl"></i>
+                        </span>
+                    </c:when>
+                    <c:when test="${notification.type == 'new_favorite'}">
+                        <span class="w-12 h-12 bg-yellow-100 text-yellow-500 rounded-full flex items-center justify-center">
+                            <i class="fa fa-bookmark text-xl"></i>
+                        </span>
+                    </c:when>
                     <c:otherwise>
                         <span class="w-12 h-12 bg-gray-100 text-gray-500 rounded-full flex items-center justify-center">
                             <i class="fa fa-info-circle text-xl"></i>
@@ -39,6 +54,9 @@
                     <c:choose>
                         <c:when test="${notification.type == 'report_result'}">举报处理结果</c:when>
                         <c:when test="${notification.type == 'content_deleted'}">内容删除通知</c:when>
+                        <c:when test="${notification.type == 'new_reply'}">新回复</c:when>
+                        <c:when test="${notification.type == 'new_like'}">点赞通知</c:when>
+                        <c:when test="${notification.type == 'new_favorite'}">收藏通知</c:when>
                         <c:otherwise>系统通知</c:otherwise>
                     </c:choose>
                 </h3>

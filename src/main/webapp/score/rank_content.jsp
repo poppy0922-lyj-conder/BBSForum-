@@ -11,9 +11,9 @@
     </div>
 </div>
 
-<div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden rank-page">
     <table class="data-table w-full">
-        <thead class="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
+        <thead class="border-b border-gray-200">
         <tr>
             <th class="px-5 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">排名</th>
             <th class="px-5 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">用户</th>
@@ -61,15 +61,21 @@
                         </td>
                         <td class="px-5 py-3">
                             <div class="flex items-center gap-3">
-                                <div class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold shadow-sm
+                                <div class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold shadow-sm overflow-hidden shrink-0 rank-avatar
                                     <c:choose>
-                                        <c:when test="${status.index == 0}">bg-gradient-to-br from-yellow-400 to-yellow-500 text-white</c:when>
-                                        <c:when test="${status.index == 1}">bg-gradient-to-br from-gray-400 to-gray-500 text-white</c:when>
-                                        <c:when test="${status.index == 2}">bg-gradient-to-br from-amber-500 to-amber-600 text-white</c:when>
-                                        <c:otherwise>bg-gray-100 text-gray-600</c:otherwise>
+                                        <c:when test="${status.index == 0}"><c:choose><c:when test="${empty row.avatar}">bg-gradient-to-br from-yellow-400 to-yellow-500 text-white</c:when></c:choose></c:when>
+                                        <c:when test="${status.index == 1}"><c:choose><c:when test="${empty row.avatar}">bg-gradient-to-br from-gray-400 to-gray-500 text-white</c:when></c:choose></c:when>
+                                        <c:when test="${status.index == 2}"><c:choose><c:when test="${empty row.avatar}">bg-gradient-to-br from-amber-500 to-amber-600 text-white</c:when></c:choose></c:when>
+                                        <c:otherwise><c:choose><c:when test="${empty row.avatar}">bg-gray-100 text-gray-600</c:when></c:choose></c:otherwise>
                                     </c:choose>
                                 ">
-                                        ${fn:substring(row.username, 0, 1)}
+                                    <c:choose>
+                                        <c:when test="${not empty row.avatar}">
+                                            <img src="${row.avatar}" alt="${row.username}" class="w-full h-full rounded-full object-cover"
+                                                 onerror="this.classList.add('hidden');this.nextElementSibling.classList.remove('hidden')">
+                                        </c:when>
+                                    </c:choose>
+                                    <span class="w-full h-full rounded-full flex items-center justify-center ${not empty row.avatar ? 'hidden' : ''}">${fn:substring(row.username, 0, 1)}</span>
                                 </div>
                                 <div class="flex flex-col">
                                     <span class="font-semibold text-gray-800">${row.username}</span>
