@@ -27,6 +27,11 @@
                 <i class="fa fa-exclamation-circle"></i> 用户不存在
             </div>
         </c:when>
+        <c:when test="${param.error == 'deleteFailed'}">
+            <div class="mb-4 px-4 py-3 bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg">
+                <i class="fa fa-exclamation-circle"></i> 删除失败，请稍后重试
+            </div>
+        </c:when>
     </c:choose>
 </c:if>
 
@@ -64,9 +69,9 @@
             </tr>
             </thead>
             <tbody class="divide-y divide-gray-100">
-            <c:forEach var="user" items="${userList}">
+            <c:forEach var="user" items="${userList}" varStatus="vs">
                 <tr class="hover:bg-blue-50/30 transition duration-150">
-                    <td class="px-5 py-3 text-sm text-gray-600">${user.id}</td>
+                    <td class="px-5 py-3 text-sm text-gray-600">${(currentPage - 1) * pageSize + vs.count}</td>
                     <td class="px-5 py-3 text-sm text-gray-800 font-medium">
                         ${user.username}
                         <c:if test="${user.id == sessionScope.user.id}">
@@ -94,6 +99,8 @@
                                 <c:when test="${user.role == 'admin'}">
                                     <form method="post" action="${pageContext.request.contextPath}/admin/users/toggleRole" class="inline">
                                         <input type="hidden" name="id" value="${user.id}" />
+                                        <input type="hidden" name="refPage" value="${currentPage}" />
+                                        <c:if test="${not empty keyword}"><input type="hidden" name="refKeyword" value="${fn:escapeXml(keyword)}" /></c:if>
                                         <button type="submit" class="p-1.5 text-amber-600 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 transition cursor-pointer"
                                                 title="降级为普通用户">
                                             <i class="fa fa-arrow-down"></i>
@@ -103,6 +110,8 @@
                                 <c:otherwise>
                                     <form method="post" action="${pageContext.request.contextPath}/admin/users/toggleRole" class="inline">
                                         <input type="hidden" name="id" value="${user.id}" />
+                                        <input type="hidden" name="refPage" value="${currentPage}" />
+                                        <c:if test="${not empty keyword}"><input type="hidden" name="refKeyword" value="${fn:escapeXml(keyword)}" /></c:if>
                                         <button type="submit" class="p-1.5 text-green-600 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 transition cursor-pointer"
                                                 title="升级为管理员">
                                             <i class="fa fa-arrow-up"></i>
@@ -119,7 +128,9 @@
                             <!-- 删除 -->
                             <form method="post" action="${pageContext.request.contextPath}/admin/users/delete" class="inline">
                                 <input type="hidden" name="id" value="${user.id}" />
-                                <button type="button" onclick="confirmDeleteUser(this, '${fn:escapeXml(user.username)}')"
+                                <input type="hidden" name="refPage" value="${currentPage}" />
+                                <c:if test="${not empty keyword}"><input type="hidden" name="refKeyword" value="${fn:escapeXml(keyword)}" /></c:if>
+                                <button type="button" data-username="${fn:escapeXml(user.username)}" onclick="confirmDeleteUser(this)"
                                         class="p-1.5 text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition cursor-pointer"
                                         title="删除用户">
                                     <i class="fa fa-trash-o"></i>
@@ -175,7 +186,8 @@
 </c:if>
 
 <script>
-function confirmDeleteUser(btn, username) {
+function confirmDeleteUser(btn) {
+    var username = btn.getAttribute('data-username');
     showConfirm('确定要删除用户「' + username + '」吗？删除后不可恢复。').then(function(ok) {
         if (ok) {
             var form = btn.closest('form');

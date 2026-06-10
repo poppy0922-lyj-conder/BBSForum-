@@ -3,9 +3,8 @@
 
 <!-- 个人中心专用布局：左右分栏 -->
 <div class="flex gap-5">
-    <!-- 左侧边栏（使用侧边栏专用的5条积分记录） -->
+    <!-- 左侧边栏 -->
     <c:set var="activeMenu" value="score-log" scope="request" />
-    <c:set var="scoreLogs" value="${sidebarScoreLogs}" scope="request" />
     <jsp:include page="/user/profile_sidebar.jsp" />
 
     <!-- 右侧主内容区 -->

@@ -79,7 +79,7 @@ public class ContentUtil {
 
         // 14. 表格：| header |\n| --- | --- |\n| cell | cell |
         Pattern tablePattern = Pattern.compile(
-                "\\|(.+)\\|\\s*\\n\\|[\\s\\-|]+\\|\\s*\\n((?:\\|.+\n*)+)",
+                "\\|(.+)\\|\\s*\\n\\|[\\s\\-|:]+\\|\\s*\\n((?:\\|.+\n*)+)",
                 Pattern.MULTILINE
         );
         html = tablePattern.matcher(html).replaceAll(match -> {
@@ -114,14 +114,14 @@ public class ContentUtil {
             return "<table class=\"w-full border-collapse my-3\"><thead><tr>" + thHtml + "</tr></thead><tbody>" + bodyHtml + "</tbody></table>";
         });
 
-        // 15. 连续两个换行 → 段落
-        html = html.replaceAll("(\r?\n){2,}", "</p><p class=\"mb-3\">");
+        // 15. 连续两个换行 → div 段落
+        html = html.replaceAll("(\r?\n){2,}", "</div><div class=\"mb-3\">");
 
         // 16. 单个换行 → <br>
         html = html.replaceAll("(\r?\n)", "<br>");
 
-        // 包裹在段落中
-        html = "<p class=\"mb-3\">" + html + "</p>";
+        // 包裹在 div 中（避免 <p> 包裹块级元素如 <table><pre> 导致的非法 HTML）
+        html = "<div class=\"mb-3\">" + html + "</div>";
 
         // 17. 恢复代码块占位符（在段落包裹之后，避免代码块被 p 标签包裹）
         for (int i = 0; i < codeBlockPlaceholders.size(); i++) {

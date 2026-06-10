@@ -758,6 +758,8 @@ function timeAgo(dateStr) {
     if (isNaN(d.getTime())) return dateStr;
     var now = new Date();
     var diff = Math.floor((now - d) / 1000); // 秒差
+    // 处理未来时间戳（如数据库时间戳比客户端时间晚）
+    if (diff < 0) return '刚刚';
     if (diff < 60) return '刚刚';
     if (diff < 3600) return Math.floor(diff / 60) + '分钟前';
     if (diff < 86400) return Math.floor(diff / 3600) + '小时前';
@@ -767,7 +769,9 @@ function timeAgo(dateStr) {
     if (days < 30) return Math.floor(days / 7) + '周前';
     var month = String(d.getMonth() + 1).padStart(2, '0');
     var day = String(d.getDate()).padStart(2, '0');
-    return month + '-' + day;
+    var year = d.getFullYear();
+    if (year === now.getFullYear()) return month + '-' + day;
+    return year + '-' + month + '-' + day;
 }
 
 // 页面加载后格式化所有 data-time-ago 元素

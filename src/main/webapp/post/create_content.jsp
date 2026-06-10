@@ -191,6 +191,16 @@ var preBadgeArea = document.getElementById('preBadgeArea');
 var preBadgeElite = document.getElementById('preBadgeElite');
 var preBadgeTop = document.getElementById('preBadgeTop');
 
+// 保存来路页面，用于发布后"返回"能回到正确的位置
+(function() {
+    if (document.referrer && !sessionStorage.getItem('bbs_back')) {
+        var ref = document.referrer;
+        if (ref.indexOf('/post/') === -1) {
+            sessionStorage.setItem('bbs_back', ref);
+        }
+    }
+})();
+
 // ========== 实时字数统计 ==========
 titleInput.addEventListener('input', function() {
     titleCount.textContent = this.value.length + '/100';

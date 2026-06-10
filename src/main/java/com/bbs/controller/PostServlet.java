@@ -700,7 +700,12 @@ public class PostServlet extends HttpServlet {
             LOG.log(Level.SEVERE, "编辑帖子失败, postId=" + postId, e);
         }
 
-        response.sendRedirect(request.getContextPath() + "/post/detail?id=" + postId);
+        // 从管理员入口进来的，返回帖子管理页
+        if ("1".equals(request.getParameter("fromAdmin"))) {
+            response.sendRedirect(request.getContextPath() + "/admin/post/manage");
+        } else {
+            response.sendRedirect(request.getContextPath() + "/post/detail?id=" + postId);
+        }
     }
 
     /** 删除帖子（需登录且是作者或管理员） */
@@ -961,8 +966,8 @@ public class PostServlet extends HttpServlet {
 
         String newFileName = UUID.randomUUID().toString() + ext;
 
-        String projectRoot = System.getProperty("user.dir");
-        File uploadDir = new File(projectRoot, "src/main/webapp/uploads");
+        String uploadDirPath = request.getServletContext().getRealPath("/uploads");
+        File uploadDir = new File(uploadDirPath);
         if (!uploadDir.exists()) {
             uploadDir.mkdirs();
         }

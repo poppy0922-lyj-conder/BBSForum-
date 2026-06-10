@@ -6,8 +6,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%232563EB'/%3E%3Cpath d='M8 6h16v20H8z' fill='%23fff'/%3E%3Cpath d='M8 6h2v20H8z' fill='%231d4ed8'/%3E%3Cpath d='M12 11h8M12 15h8M12 19h5' stroke='%2393c5fd' stroke-width='1.2' stroke-linecap='round' fill='none'/%3E%3C/svg%3E">
     <title>${pageTitle} - BBS技术社区</title>
-    <!-- 防白闪：在渲染前同步读取 localStorage 注入主题关键样式 -->
+    <!-- 防白闪：在渲染前同步读取 localStorage 注入完整主题样式 -->
     <script>
     (function(){
         var theme = localStorage.getItem('bbs-theme');
@@ -15,9 +16,9 @@
         document.documentElement.setAttribute('data-theme', theme);
         var css = '';
         if (theme === 'tech') {
-            css = 'body{background:#090014!important}header{background:rgba(9,0,20,0.95)!important;border-bottom:2px solid #FF00FF!important}.bg-white,.post-card,.auth-card,.profile-header,.stat-card,.quick-item,.data-table{background:rgba(26,16,60,0.80)!important;border:1px solid #2D1B4E!important;border-top:2px solid #00FFFF!important;border-radius:0!important}.stat-header{background:rgba(0,255,255,0.06)!important;border-bottom:1px solid rgba(0,255,255,0.15)!important}.stat-bars .bg-blue-100,.stat-bars .bg-green-100{background:rgba(0,255,255,0.10)!important}.stat-bars .bg-purple-100{background:rgba(255,0,255,0.15)!important}.stat-bars .bg-orange-100{background:rgba(255,153,0,0.12)!important}.stat-bars .bg-blue-400,.stat-bars .bg-green-400{background:#00FFFF!important}.stat-bars .bg-purple-400{background:#FF00FF!important}.stat-bars .bg-orange-400{background:#FF9900!important}';
+            css='body{background:#090014!important}header{background:rgba(9,0,20,0.95)!important;border-bottom:2px solid #FF00FF!important}.bg-white{background:#1a103c!important}.bg-gray-100{background:#0d0720!important}.bg-gray-50{background:#0a0518!important}.bg-blue-50{background:#0d0030!important}.bg-blue-100{background:rgba(0,255,255,0.10)!important}.bg-red-50{background:#200020!important}.bg-red-100{background:rgba(255,0,255,0.12)!important}.bg-orange-50{background:#201000!important}.bg-green-50{background:#002010!important}.bg-green-100{background:rgba(0,255,255,0.10)!important}.bg-pink-50{background:rgba(255,0,255,0.12)!important}.bg-pink-100{background:rgba(255,0,255,0.15)!important}.bg-yellow-50{background:rgba(255,153,0,0.10)!important}.bg-yellow-100{background:rgba(255,153,0,0.12)!important}.bg-amber-50{background:rgba(255,153,0,0.10)!important}.bg-amber-100{background:rgba(255,153,0,0.15)!important}.bg-purple-50{background:rgba(255,0,255,0.10)!important}.bg-purple-100{background:rgba(255,0,255,0.15)!important}.bg-black\\/40{background:rgba(0,0,0,0.7)!important}.bg-gray-200{background:rgba(26,16,60,0.6)!important}.bg-gray-900{background:rgba(0,0,0,0.7)!important}.bg-blue-500{background:#1a0030!important}.text-gray-700{color:#E0E0E0!important}.text-gray-600{color:rgba(224,224,224,0.85)!important}.text-gray-800{color:#E0E0E0!important}.text-gray-500{color:rgba(224,224,224,0.7)!important}.text-gray-400{color:rgba(224,224,224,0.55)!important}.text-gray-900{color:#E0E0E0!important}.text-gray-100{color:rgba(224,224,224,0.9)!important}.text-red-500{color:#FF00FF!important}.text-red-600{color:#FF00FF!important}.text-red-700{color:rgba(255,0,255,0.8)!important}.text-blue-500{color:#00FFFF!important}.text-blue-600{color:#00FFFF!important}.text-blue-700{color:rgba(0,255,255,0.8)!important}.text-blue-400{color:#00FFFF!important}.text-green-500{color:#00FFFF!important}.text-green-600{color:#00FFFF!important}.text-green-700{color:rgba(0,255,255,0.8)!important}.text-orange-500{color:#FF9900!important}.text-orange-600{color:#FF9900!important}.text-orange-700{color:rgba(255,153,0,0.8)!important}.text-purple-500{color:#FF00FF!important}.text-purple-600{color:#FF00FF!important}.text-pink-500{color:#FF00FF!important}.text-pink-600{color:#FF00FF!important}.text-pink-700{color:rgba(255,0,255,0.8)!important}.text-yellow-500{color:#FF9900!important}.text-yellow-600{color:#FF9900!important}.text-yellow-700{color:rgba(255,153,0,0.8)!important}.text-amber-400{color:#FF9900!important}.text-amber-500{color:#FF9900!important}.text-amber-600{color:#FF9900!important}.text-white{color:#E0E0E0!important}.border-gray-200{border-color:#2D1B4E!important}.border-gray-100{border-color:rgba(45,27,78,0.5)!important}.border-gray-300{border-color:#FF00FF!important}.border-gray-50{border-color:rgba(45,27,78,0.3)!important}.border-blue-200{border-color:#00FFFF!important}.border-blue-500{border-color:#00FFFF!important}.border-orange-200{border-color:#FF9900!important}.border-orange-300{border-color:#FF9900!important}.border-red-200{border-color:#FF00FF!important}.border-green-200{border-color:#00FFFF!important}.border-pink-200{border-color:#FF00FF!important}.border-yellow-200{border-color:#FF9900!important}.border-amber-200{border-color:#FF9900!important}.ring-blue-200{--tw-ring-color:rgba(0,255,255,0.3)!important}.bg-blue-400{background:#00FFFF!important}.bg-green-400{background:#00FFFF!important}.bg-purple-400{background:#FF00FF!important}.bg-orange-400{background:#FF9900!important}.post-card,.auth-card,.profile-header,.stat-card,.quick-item,.data-table{background:rgba(26,16,60,0.80)!important;border-color:#2D1B4E!important;border-top-color:#00FFFF!important}.stat-header{background:rgba(0,255,255,0.06)!important}';
         } else if (theme === 'doodle') {
-            css = 'body{background-image:linear-gradient(90deg,rgba(180,140,80,0.05) 1px,transparent 1px),linear-gradient(rgba(180,140,80,0.05) 1px,transparent 1px)!important;background-size:20px 20px!important}.bg-white,.post-card,.auth-card,.profile-header,.stat-card,.quick-item,.data-table{background:#fffdf5!important}.post-card{border-radius:255px 15px 225px 15px/15px 225px 15px 255px!important;border:2.5px dashed #d8cdb8!important}.stat-header{background:#f5f0e5!important}.stat-bars .bg-blue-100,.stat-bars .bg-green-100,.stat-bars .bg-purple-100,.stat-bars .bg-orange-100{background:#ede5d5!important}.stat-bars .bg-blue-400{background:#b8926e!important}.stat-bars .bg-green-400{background:#7a965a!important}.stat-bars .bg-purple-400{background:#a07aa0!important}.stat-bars .bg-orange-400{background:#b87a55!important}.rank-page .bg-blue-50{background:rgba(245,240,229,0.6)!important}.rank-avatar{background-image:none!important;background-color:#d4c5a0!important;color:#6b5b3e!important}.rank-page .text-blue-500{color:#8b7a5a!important}.rank-page .text-orange-500{color:#b87a55!important}';
+            css='body{background-image:linear-gradient(90deg,rgba(180,140,80,0.05) 1px,transparent 1px),linear-gradient(rgba(180,140,80,0.05) 1px,transparent 1px)!important;background-size:20px 20px!important}.bg-white{background:#fffdf5!important}.bg-gray-100{background:#f5f0e8!important}.bg-gray-50{background:#faf5eb!important}.bg-blue-50{background:#f0e8d0!important}.bg-blue-100{background:#e0d8c0!important}.bg-red-50{background:#f5e8e0!important}.bg-red-100{background:#f0e0d8!important}.bg-orange-50{background:#f5e8d0!important}.bg-green-50{background:#e8f0d0!important}.bg-green-100{background:#d8e0c8!important}.bg-pink-50{background:#f5e8e0!important}.bg-pink-100{background:#f0e0d8!important}.bg-yellow-50{background:#f5e8d0!important}.bg-yellow-100{background:#f0e0c8!important}.bg-amber-50{background:#f5e8d0!important}.bg-amber-100{background:#f0e0c8!important}.bg-purple-50{background:#f0e8d8!important}.bg-purple-100{background:#e8dcc8!important}.bg-black\\/40{background:rgba(60,40,20,0.3)!important}.bg-gray-200{background:#eee5d6!important}.bg-gray-900{background:#3a2518!important}.bg-blue-500{background:#d4a030!important}.text-gray-700{color:#5c4033!important}.text-gray-600{color:#6b4c3a!important}.text-gray-800{color:#4a3528!important}.text-gray-500{color:#8b6f5a!important}.text-gray-400{color:#a0806a!important}.text-gray-900{color:#3a2518!important}.text-gray-100{color:#f5f0e8!important}.text-red-500{color:#c0392b!important}.text-red-600{color:#c0392b!important}.text-red-700{color:#a03020!important}.text-blue-500{color:#8b6914!important}.text-blue-600{color:#7a5a10!important}.text-blue-700{color:#6a4a08!important}.text-blue-400{color:#9a7a24!important}.text-green-500{color:#5a8b3a!important}.text-green-600{color:#5a8b3a!important}.text-green-700{color:#4a7a2a!important}.text-orange-500{color:#c07020!important}.text-orange-600{color:#c07020!important}.text-orange-700{color:#a06010!important}.text-purple-500{color:#8a5a7a!important}.text-purple-600{color:#8a5a7a!important}.text-pink-500{color:#c0392b!important}.text-pink-600{color:#c0392b!important}.text-pink-700{color:#a03020!important}.text-yellow-500{color:#c07020!important}.text-yellow-600{color:#c07020!important}.text-yellow-700{color:#a06010!important}.text-amber-400{color:#c07020!important}.text-amber-500{color:#c07020!important}.text-amber-600{color:#c07020!important}.text-white{color:#3a2518!important}.border-gray-200{border-color:#e0d5c0!important}.border-gray-100{border-color:#e8ddd0!important}.border-gray-300{border-color:#d0c5b0!important}.border-gray-50{border-color:#f0e8d8!important}.border-blue-200{border-color:#c8b890!important}.border-blue-500{border-color:#d4a030!important}.border-orange-200{border-color:#d8c090!important}.border-orange-300{border-color:#d8b090!important}.border-red-200{border-color:#d8b0a0!important}.border-green-200{border-color:#b8c8a0!important}.border-pink-200{border-color:#d8b0a0!important}.border-yellow-200{border-color:#d8c090!important}.border-amber-200{border-color:#d8c090!important}.ring-blue-200{--tw-ring-color:rgba(180,130,40,0.2)!important}.bg-blue-400{background:#b8926e!important}.bg-green-400{background:#7a965a!important}.bg-purple-400{background:#a07aa0!important}.bg-orange-400{background:#b87a55!important}.post-card,.auth-card,.profile-header,.stat-card,.quick-item,.data-table{background:#fffdf5!important}.stat-header{background:#f5f0e5!important}';
         }
         if (css) {
             var s = document.createElement('style');
@@ -250,37 +251,37 @@
                     <div>
                         <div class="flex items-center justify-between mb-1.5">
                             <span class="text-xs text-gray-400 flex items-center gap-1"><i class="fa fa-file-text-o text-blue-400"></i> 帖子总数</span>
-                            <span class="text-sm font-bold text-blue-500">${statsPostCount}</span>
+                            <span id="statPostCount" class="text-sm font-bold text-blue-500">${statsPostCount}</span>
                         </div>
                         <div class="w-full h-2 bg-blue-100 rounded-full overflow-hidden">
-                            <div class="h-full bg-blue-400 rounded-full" style="width:${statsPostCount / statsMax * 100}%"></div>
+                            <div id="statPostBar" class="h-full bg-blue-400 rounded-full" style="width:${statsPostCount / statsMax * 100}%"></div>
                         </div>
                     </div>
                     <div>
                         <div class="flex items-center justify-between mb-1.5">
                             <span class="text-xs text-gray-400 flex items-center gap-1"><i class="fa fa-comments-o text-green-400"></i> 评论总数</span>
-                            <span class="text-sm font-bold text-green-500">${statsReplyCount}</span>
+                            <span id="statReplyCount" class="text-sm font-bold text-green-500">${statsReplyCount}</span>
                         </div>
                         <div class="w-full h-2 bg-green-100 rounded-full overflow-hidden">
-                            <div class="h-full bg-green-400 rounded-full" style="width:${statsReplyCount / statsMax * 100}%"></div>
+                            <div id="statReplyBar" class="h-full bg-green-400 rounded-full" style="width:${statsReplyCount / statsMax * 100}%"></div>
                         </div>
                     </div>
                     <div>
                         <div class="flex items-center justify-between mb-1.5">
                             <span class="text-xs text-gray-400 flex items-center gap-1"><i class="fa fa-users text-purple-400"></i> 用户总数</span>
-                            <span class="text-sm font-bold text-purple-500">${statsUserCount}</span>
+                            <span id="statUserCount" class="text-sm font-bold text-purple-500">${statsUserCount}</span>
                         </div>
                         <div class="w-full h-2 bg-purple-100 rounded-full overflow-hidden">
-                            <div class="h-full bg-purple-400 rounded-full" style="width:${statsUserCount / statsMax * 100}%"></div>
+                            <div id="statUserBar" class="h-full bg-purple-400 rounded-full" style="width:${statsUserCount / statsMax * 100}%"></div>
                         </div>
                     </div>
                     <div>
                         <div class="flex items-center justify-between mb-1.5">
                             <span class="text-xs text-gray-400 flex items-center gap-1"><i class="fa fa-gift text-orange-400"></i> 需求总数</span>
-                            <span class="text-sm font-bold text-orange-500">${statsDemandCount}</span>
+                            <span id="statDemandCount" class="text-sm font-bold text-orange-500">${statsDemandCount}</span>
                         </div>
                         <div class="w-full h-2 bg-orange-100 rounded-full overflow-hidden">
-                            <div class="h-full bg-orange-400 rounded-full" style="width:${statsDemandCount / statsMax * 100}%"></div>
+                            <div id="statDemandBar" class="h-full bg-orange-400 rounded-full" style="width:${statsDemandCount / statsMax * 100}%"></div>
                         </div>
                     </div>
                 </div>
@@ -301,7 +302,7 @@
                                        <c:when test="${vs.index < 3}">bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100</c:when>
                                        <c:otherwise>bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100</c:otherwise>
                                    </c:choose> no-underline">
-                                ${kw.key}
+                                ${kw.key} <span class="ml-1 text-xs opacity-60">${kw.value}</span>
                             </a>
                         </c:forEach>
                     </div>
@@ -536,6 +537,39 @@ document.getElementById('modalOverlay').addEventListener('click', function(e) {
     }
     fetchUnreadCount();
     setInterval(fetchUnreadCount, 60000);
+})();
+
+// ========== 实时数据轮询（每30秒刷新） ==========
+(function() {
+    function fetchStats() {
+        var ctx = '${pageContext.request.contextPath}';
+        fetch(ctx + '/api/stats')
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                var postEl = document.getElementById('statPostCount');
+                var replyEl = document.getElementById('statReplyCount');
+                var userEl = document.getElementById('statUserCount');
+                var demandEl = document.getElementById('statDemandCount');
+                if (!postEl) return; // 当前页面没有统计面板
+                postEl.textContent = data.postCount;
+                replyEl.textContent = data.replyCount;
+                userEl.textContent = data.userCount;
+                demandEl.textContent = data.demandCount;
+                // 更新进度条
+                var max = data.maxCount || 1;
+                var setBar = function(id, val) {
+                    var bar = document.getElementById(id);
+                    if (bar) bar.style.width = (val / max * 100) + '%';
+                };
+                setBar('statPostBar', data.postCount);
+                setBar('statReplyBar', data.replyCount);
+                setBar('statUserBar', data.userCount);
+                setBar('statDemandBar', data.demandCount);
+            }).catch(function() {});
+    }
+    // 立即开始轮询，之后每10秒刷新一次
+    fetchStats();
+    setInterval(fetchStats, 10000);
 })();
 </script>
 </body>

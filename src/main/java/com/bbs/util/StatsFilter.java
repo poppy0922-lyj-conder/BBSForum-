@@ -17,7 +17,7 @@ import java.util.logging.Logger;
 public class StatsFilter implements Filter {
 
     private static final Logger LOG = Logger.getLogger(StatsFilter.class.getName());
-    private static final long CACHE_DURATION = 15_000; // 15秒缓存
+    private static final long CACHE_DURATION = 5_000; // 5秒缓存
 
     private static volatile long lastLoadTime = 0;
     private static volatile int cachedUserCount = 0;
@@ -31,12 +31,28 @@ public class StatsFilter implements Filter {
             throws java.io.IOException, ServletException {
 
         long now = System.currentTimeMillis();
-        boolean isPost = "POST".equalsIgnoreCase(((HttpServletRequest) request).getMethod());
+        HttpServletRequest httpReq = (HttpServletRequest) request;
+        boolean isPost = "POST".equalsIgnoreCase(httpReq.getMethod());
 
         // POST请求（数据可能已变更）或缓存过期时刷新
         if (isPost || now - lastLoadTime > CACHE_DURATION) {
             refreshCache();
             lastLoadTime = now;
+        }
+
+        // AJAX 统计接口（返回 JSON，供前端轮询）
+        if (httpReq.getRequestURI().endsWith("/api/stats")) {
+            int max = Math.max(Math.max(cachedPostCount, cachedReplyCount),
+                               Math.max(cachedUserCount, cachedDemandCount));
+            if (max == 0) max = 1;
+            String json = "{\"postCount\":" + cachedPostCount +
+                          ",\"replyCount\":" + cachedReplyCount +
+                          ",\"userCount\":" + cachedUserCount +
+                          ",\"demandCount\":" + cachedDemandCount +
+                          ",\"maxCount\":" + max + "}";
+            response.setContentType("application/json;charset=UTF-8");
+            response.getWriter().write(json);
+            return;
         }
 
         request.setAttribute("statsUserCount", cachedUserCount);

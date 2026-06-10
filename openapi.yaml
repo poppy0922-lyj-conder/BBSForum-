@@ -1,0 +1,1471 @@
+openapi: "3.0.3"
+info:
+  title: BBS论坛系统 API
+  description: |
+    BBS论坛系统 RESTful API 接口文档
+
+    ## 公共约定
+
+    - **基础路径**: `http://localhost:8088/BBSForum`
+    - **GET**: 页面展示、数据查询
+    - **POST**: 数据提交、状态变更
+    - **页面请求**: 返回 JSP 页面（HTML + Tailwind CSS）
+    - **JSON 请求**: 交互类接口返回 `Content-Type: application/json`
+    - **图片请求**: 封面图生成返回 `image/svg+xml`
+  version: "2.0.0"
+servers:
+  - url: http://localhost:8088/BBSForum
+    description: 本地开发环境
+
+paths:
+  # ======================================================
+  # 首页
+  # ======================================================
+  /:
+    get:
+      summary: 首页帖子列表
+      description: 返回首页JSP页面，包含帖子列表、板块导航、右侧数据面板。排序：is_top DESC → is_elite DESC → created_at DESC
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+          description: 页码
+        - name: refresh
+          in: query
+          schema:
+            type: integer
+          description: 刷新板块缓存
+      responses:
+        "200":
+          description: 首页 JSP 页面
+  /index:
+    $ref: "#/paths/~1"
+  /home:
+    $ref: "#/paths/~1"
+
+  # ======================================================
+  # 帖子模块
+  # ======================================================
+  /post/detail:
+    get:
+      summary: 帖子详情
+      description: 返回帖子详情 JSP 页面。包含帖子内容(Markdown渲染为HTML)、AI总结、回复列表(支持任意深度嵌套回复)、相关推荐、互动按钮
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            type: integer
+          description: 帖子ID
+      responses:
+        "200":
+          description: 帖子详情 JSP 页面
+
+  /post/create:
+    get:
+      summary: 显示发帖表单
+      description: 需登录，返回发帖表单 JSP 页面
+      responses:
+        "200":
+          description: 发帖表单 JSP 页面
+    post:
+      summary: 发布帖子/保存草稿
+      description: 需登录。提交新帖或保存草稿，支持封面图上传
+      parameters:
+        - name: action
+          in: query
+          schema:
+            type: string
+            enum: [publish, draft]
+            default: publish
+          description: publish=发布(默认)，draft=保存草稿
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [title, content, categoryId]
+              properties:
+                title:
+                  type: string
+                  maxLength: 100
+                  description: 帖子标题
+                content:
+                  type: string
+                  description: 帖子内容(Markdown)
+                categoryId:
+                  type: integer
+                  description: 所属板块ID
+                keywords:
+                  type: string
+                  description: 关键词，逗号分隔
+                coverImage:
+                  type: string
+                  format: binary
+                  description: 封面图文件(jpg/png/gif/webp ≤5MB)
+                imageUrl:
+                  type: string
+                  description: 封面图URL
+      responses:
+        "302":
+          description: 成功→重定向到新帖详情页；失败→返回表单页显示错误
+      x-score-rule: 发帖成功 +10 积分
+
+  /post/edit:
+    get:
+      summary: 显示编辑表单
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            type: integer
+          description: 帖子ID
+      responses:
+        "200":
+          description: 编辑表单 JSP 页面
+    post:
+      summary: 提交编辑
+      description: 需登录，仅帖子作者或管理员可操作
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [id, title, content, categoryId]
+              properties:
+                id:
+                  type: integer
+                  description: 帖子ID
+                title:
+                  type: string
+                  description: 标题
+                content:
+                  type: string
+                  description: 内容
+                categoryId:
+                  type: integer
+                  description: 板块ID
+                keywords:
+                  type: string
+                  description: 关键词
+                coverImage:
+                  type: string
+                  format: binary
+                  description: 新封面图
+                imageUrl:
+                  type: string
+                  description: 封面图URL
+      responses:
+        "302":
+          description: 重定向到帖子详情
+
+  /post/delete:
+    post:
+      summary: 删除帖子（软删除）
+      description: 需登录，仅帖子作者或管理员可操作。执行 UPDATE posts SET is_deleted = 1
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            type: integer
+          description: 帖子ID
+      responses:
+        "302":
+          description: 重定向到首页
+
+  /post/reply:
+    post:
+      summary: 回复帖子（支持嵌套回复）
+      description: |
+        需登录。回复成功后回复者积分+2，回复自动定位到 `#reply-{id}`。
+        嵌套回复：传 parentId 表示回复指定回复，被回复用户收到 reply_reply 通知。
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [postId, content]
+              properties:
+                postId:
+                  type: integer
+                  description: 帖子ID
+                content:
+                  type: string
+                  description: 回复内容
+                parentId:
+                  type: integer
+                  description: 父回复ID，用于嵌套回复（可选）
+      responses:
+        "302":
+          description: "重定向到帖子详情页 #reply-{id}"
+      x-score-rule: 回复成功 +2 积分
+
+  /post/aiSummary:
+    post:
+      summary: AI 智能总结
+      description: 需登录。调用硅基流动 API(Qwen/Qwen2.5-7B-Instruct)，结果存入 posts.ai_summary
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [id]
+              properties:
+                id:
+                  type: integer
+                  description: 帖子ID
+      responses:
+        "200":
+          description: JSON
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  summary:
+                    type: string
+                    description: AI 总结内容
+                  error:
+                    type: string
+                    description: 错误信息
+
+  /post/search:
+    get:
+      summary: 帖子搜索
+      description: 搜索标题、内容、关键词（LIKE 模糊匹配），过滤 is_deleted=0。排序：置顶 > 加精 > 时间倒序
+      parameters:
+        - name: keyword
+          in: query
+          required: true
+          schema:
+            type: string
+            maxLength: 50
+          description: 搜索关键词
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+          description: 页码
+      responses:
+        "200":
+          description: 搜索结果 JSP 页面
+
+  /cover/{postId}:
+    get:
+      summary: 封面图生成
+      description: 无封面图时自动调用。10组渐变配色(postId%10)，装饰圆通过 Random(postId^0xABCDEF) 确定性生成
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: 帖子ID，用于确定配色方案
+        - name: title
+          in: query
+          schema:
+            type: string
+          description: 帖子标题，取首字符显示
+      responses:
+        "200":
+          description: SVG 图片
+          headers:
+            Content-Type:
+              schema:
+                type: string
+                example: image/svg+xml
+            Cache-Control:
+              schema:
+                type: string
+                example: max-age=86400
+
+  /post/uploadImage:
+    post:
+      summary: 内联图片上传
+      description: 需登录，上传到 uploads 目录，UUID 重命名
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [coverImage]
+              properties:
+                coverImage:
+                  type: string
+                  format: binary
+                  description: 图片文件
+      responses:
+        "200":
+          description: JSON
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  markdown:
+                    type: string
+                    example: "![图片](/BBSForum/uploads/xxx.jpg)"
+                  url:
+                    type: string
+                    example: "/BBSForum/uploads/xxx.jpg"
+
+  /post/drafts:
+    get:
+      summary: 草稿箱
+      description: 需登录。查看当前用户所有草稿(is_draft=1)，支持继续编辑和删除
+      responses:
+        "200":
+          description: 草稿箱 JSP 页面
+
+  # ======================================================
+  # 用户模块
+  # ======================================================
+  /user/register:
+    get:
+      summary: 显示注册表单
+      responses:
+        "200":
+          description: 注册表单 JSP 页面
+    post:
+      summary: 提交注册
+      description: 密码使用 BCrypt 加密存储
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [username, password, password2]
+              properties:
+                username:
+                  type: string
+                  description: 用户名，唯一
+                password:
+                  type: string
+                  format: password
+                  description: 密码
+                password2:
+                  type: string
+                  format: password
+                  description: 确认密码
+                phone:
+                  type: string
+                  description: 联系方式
+                jobType:
+                  type: string
+                  description: 工作性质
+                jobLocation:
+                  type: string
+                  description: 工作地点
+      responses:
+        "302":
+          description: 成功→/user/login?registered=1；失败→返回注册页显示错误
+
+  /user/login:
+    get:
+      summary: 显示登录表单
+      responses:
+        "200":
+          description: 登录表单 JSP 页面
+    post:
+      summary: 提交登录
+      description: |
+        支持 BCrypt hash 和旧明文密码的双重校验，旧明文首次登录自动升级为 BCrypt。
+        登录成功建立 Session(sessionScope.user)，当天首次登录积分+2。
+        为防止 Session Fixation，登录成功后调用 request.changeSessionId()。
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username:
+                  type: string
+                  description: 用户名
+                password:
+                  type: string
+                  format: password
+                  description: 密码
+      responses:
+        "302":
+          description: 成功→重定向到首页；失败→返回登录页显示错误
+
+  /logout:
+    get:
+      summary: 退出登录
+      description: 清除当前 Session，重定向到首页
+      responses:
+        "302":
+          description: 重定向到首页
+
+  /user/profile:
+    get:
+      summary: 个人中心
+      description: 需登录(AuthFilter保护)。显示用户基本信息、当前积分、最近5条积分流水
+      responses:
+        "200":
+          description: 个人中心 JSP 页面
+
+  /user/profile/edit:
+    get:
+      summary: 显示编辑资料表单
+      responses:
+        "200":
+          description: 编辑资料 JSP 页面
+    post:
+      summary: 提交编辑资料
+      description: 支持头像上传(multipart/form-data)，格式(jpg/png/gif/webp ≤5MB)
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                phone:
+                  type: string
+                  description: 联系方式
+                jobType:
+                  type: string
+                  description: 工作性质
+                jobLocation:
+                  type: string
+                  description: 工作地点
+                password:
+                  type: string
+                  format: password
+                  description: 新密码（不修改留空）
+                password2:
+                  type: string
+                  format: password
+                  description: 确认新密码
+                avatar:
+                  type: string
+                  format: binary
+                  description: 头像图片
+      responses:
+        "302":
+          description: 成功→/user/profile?updated=1
+
+  /user/checkin:
+    get:
+      summary: 每日签到
+      description: 需登录。每天限签到一次，连续签到递增(第1天+5，封顶+15)，断签重置
+      responses:
+        "200":
+          description: JSON
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  score:
+                    type: integer
+                    description: 本次获得积分
+                  consecutive:
+                    type: integer
+                    description: 连续签到天数
+                  msg:
+                    type: string
+                    description: 错误信息
+
+  /user/profile/follows:
+    get:
+      summary: 关注列表
+      description: 需登录。查看当前用户关注的所有用户
+      responses:
+        "200":
+          description: 关注列表 JSP 页面
+
+  /user/score-log:
+    get:
+      summary: 积分记录
+      description: 需登录(AuthFilter保护)。查看当前用户积分流水记录，每页15条，按时间倒序
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+          description: 页码
+      responses:
+        "200":
+          description: 积分记录 JSP 页面
+
+  /user/profile/posts:
+    get:
+      summary: 我的发布
+      description: 需登录。显示当前用户发布的所有帖子
+      responses:
+        "200":
+          description: 帖子列表 JSP 页面
+
+  /user/profile/demands:
+    get:
+      summary: 我的悬赏
+      description: 需登录。显示当前用户发布的所有需求
+      responses:
+        "200":
+          description: 需求列表 JSP 页面
+
+  /user/profile/likes:
+    get:
+      summary: 我的点赞
+      description: 需登录。显示当前用户点赞过的所有帖子
+      responses:
+        "200":
+          description: 点赞列表 JSP 页面
+
+  /user/profile/favorites:
+    get:
+      summary: 我的收藏
+      description: 需登录。显示当前用户收藏过的所有帖子
+      responses:
+        "200":
+          description: 收藏列表 JSP 页面
+
+  # ======================================================
+  # 交互模块
+  # ======================================================
+  /interact/follow:
+    post:
+      summary: 关注/取消关注
+      description: 需登录。切换操作，已关注则取消，未关注则关注。不能关注自己
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [userId]
+              properties:
+                userId:
+                  type: integer
+                  description: 被关注者ID
+      responses:
+        "200":
+          description: JSON
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  action:
+                    type: string
+                    enum: [follow, unfollow]
+                  msg:
+                    type: string
+
+  /interact/like:
+    post:
+      summary: 点赞/取消点赞
+      description: 需登录。切换操作，点赞时帖子作者+3积分，取消点赞时-3积分
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [postId]
+              properties:
+                postId:
+                  type: integer
+                  description: 帖子ID
+      responses:
+        "200":
+          description: JSON
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  action:
+                    type: string
+                    enum: [like, unlike]
+                  count:
+                    type: integer
+                    description: 当前点赞数
+
+  /interact/favorite:
+    post:
+      summary: 收藏/取消收藏
+      description: 需登录。切换操作，收藏时帖子作者+5积分，取消收藏时-5积分
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [postId]
+              properties:
+                postId:
+                  type: integer
+                  description: 帖子ID
+      responses:
+        "200":
+          description: JSON
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  action:
+                    type: string
+                    enum: [favorite, unfavorite]
+                  count:
+                    type: integer
+                    description: 当前收藏数
+
+  # ======================================================
+  # 需求悬赏模块
+  # ======================================================
+  /demand:
+    get:
+      summary: 需求列表
+      description: 每页20条，按发布时间倒序，过滤is_deleted=0。已结束显示灰色，自己的需求显示"我的"
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+          description: 页码
+      responses:
+        "200":
+          description: 需求列表 JSP 页面
+
+  /demand/detail:
+    get:
+      summary: 需求详情
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            type: integer
+          description: 需求ID
+      responses:
+        "200":
+          description: 需求详情 JSP 页面(含需求信息、回复列表、采纳按钮、回复表单)
+
+  /demand/create:
+    get:
+      summary: 显示发布需求表单
+      responses:
+        "200":
+          description: 发布表单 JSP 页面
+    post:
+      summary: 提交发布需求
+      description: |
+        需登录。发布时检查积分≥悬赏积分，使用事务保证：
+        conn.setAutoCommit(false) → INSERT demand → UPDATE users SET score=score-? → INSERT score_logs → commit
+        不能发布超过10000积分的悬赏
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [title, content, score]
+              properties:
+                title:
+                  type: string
+                  description: 需求标题
+                content:
+                  type: string
+                  description: 需求描述
+                score:
+                  type: integer
+                  minimum: 1
+                  maximum: 10000
+                  description: 悬赏积分
+      responses:
+        "302":
+          description: 成功→/demand?success=1；失败→/demand/create?error=xxx
+
+  /demand/reply:
+    post:
+      summary: 需求回复
+      description: 需登录。回复存入 demand_replies 表(独立于 replies 表)
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [demandId, content]
+              properties:
+                demandId:
+                  type: integer
+                  description: 需求ID
+                content:
+                  type: string
+                  description: 回复内容
+      responses:
+        "302":
+          description: 重定向回需求详情页
+
+  /demand/accept:
+    post:
+      summary: 采纳回复
+      description: |
+        需登录。仅需求发布者可操作，仅 open 状态可操作，不能采纳自己。
+        使用行锁事务保证：SELECT ... FOR UPDATE → UPDATE users SET score=score+? → INSERT score_logs → UPDATE demands SET status='closed' → commit
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [demandId, replyId]
+              properties:
+                demandId:
+                  type: integer
+                  description: 需求ID
+                replyId:
+                  type: integer
+                  description: 被采纳的回复ID
+      responses:
+        "302":
+          description: 成功→/demand/detail?id=X&accepted=1；失败→/demand/detail?id=X&error=xxx
+
+  /demand/update:
+    get:
+      summary: 显示编辑需求表单
+      description: 需登录且为需求发布者，仅 open 状态可编辑
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            type: integer
+          description: 需求ID
+      responses:
+        "200":
+          description: 编辑表单 JSP 页面
+    post:
+      summary: 提交编辑需求
+      description: 仅需求发布者可操作，仅 open 状态可编辑
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [id, title, content]
+              properties:
+                id:
+                  type: integer
+                  description: 需求ID
+                title:
+                  type: string
+                  description: 标题
+                content:
+                  type: string
+                  description: 内容
+      responses:
+        "302":
+          description: 成功→/demand/detail?id=X&updated=1
+
+  # ======================================================
+  # 积分模块
+  # ======================================================
+  /score/rank:
+    get:
+      summary: 积分排行榜
+      description: 按 users.score 降序排列，TOP 100，前三名金银铜奖杯
+      responses:
+        "200":
+          description: 排行榜 JSP 页面
+
+  /score/record:
+    get:
+      summary: 积分记录
+      description: 需登录。按 created_at 降序排列，显示变动值/原因/时间
+      responses:
+        "200":
+          description: 积分流水 JSP 页面
+
+  # ======================================================
+  # 管理后台
+  # ======================================================
+  /admin:
+    get:
+      summary: 管理员后台首页
+      description: 需 admin 角色(AuthFilter保护)
+      responses:
+        "200":
+          description: 后台首页 JSP 页面
+
+  /admin/post/manage:
+    get:
+      summary: 帖子管理列表
+      description: 需 admin 角色。分页显示所有帖子(过滤 is_deleted=0)，支持搜索和排序
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+          description: 页码
+        - name: keyword
+          in: query
+          schema:
+            type: string
+          description: 关键词搜索(标题和内容)
+        - name: author
+          in: query
+          schema:
+            type: string
+          description: 作者用户名模糊搜索
+        - name: categoryId
+          in: query
+          schema:
+            type: integer
+          description: 板块ID筛选
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: asc
+          description: 排序方向
+      responses:
+        "200":
+          description: 帖子管理 JSP 页面
+
+  /admin/post/top:
+    post:
+      summary: 切换置顶状态
+      description: 需 admin 角色。循环切换：0→1→2→0
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [id]
+              properties:
+                id:
+                  type: integer
+                  description: 帖子ID
+      responses:
+        "302":
+          description: 重定向到帖子管理页
+
+  /admin/post/elite:
+    post:
+      summary: 切换加精状态
+      description: 需 admin 角色。开关切换：0↔1
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [id]
+              properties:
+                id:
+                  type: integer
+                  description: 帖子ID
+      responses:
+        "302":
+          description: 重定向到帖子管理页
+
+  /admin/categories:
+    get:
+      summary: 板块列表
+      responses:
+        "200":
+          description: 板块管理 JSP 页面
+
+  /admin/categories/add:
+    post:
+      summary: 添加板块
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                  description: 板块名称
+                description:
+                  type: string
+                  description: 板块描述
+      responses:
+        "302":
+          description: 重定向到板块管理页
+
+  /admin/categories/edit:
+    get:
+      summary: 显示编辑板块表单
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            type: integer
+          description: 板块ID
+      responses:
+        "200":
+          description: 编辑表单 JSP 页面
+    post:
+      summary: 提交编辑板块
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [id, name]
+              properties:
+                id:
+                  type: integer
+                  description: 板块ID
+                name:
+                  type: string
+                  description: 板块名称
+                description:
+                  type: string
+                  description: 板块描述
+      responses:
+        "302":
+          description: 重定向到板块管理页
+
+  /admin/categories/delete:
+    post:
+      summary: 删除板块
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [id]
+              properties:
+                id:
+                  type: integer
+                  description: 板块ID
+      responses:
+        "302":
+          description: 重定向到板块管理页
+
+  /admin/users:
+    get:
+      summary: 用户列表
+      description: 需 admin 角色。分页+搜索
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+          description: 页码
+        - name: keyword
+          in: query
+          schema:
+            type: string
+          description: 关键词搜索(用户名)
+      responses:
+        "200":
+          description: 用户管理 JSP 页面
+
+  /admin/users/edit:
+    get:
+      summary: 显示编辑用户表单
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            type: integer
+          description: 用户ID
+      responses:
+        "200":
+          description: 编辑表单 JSP 页面
+    post:
+      summary: 保存用户编辑
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [id]
+              properties:
+                id:
+                  type: integer
+                  description: 用户ID
+                phone:
+                  type: string
+                  description: 联系方式
+                jobType:
+                  type: string
+                  description: 工作性质
+                jobLocation:
+                  type: string
+                  description: 工作地点
+                role:
+                  type: string
+                  enum: [user, admin]
+                  description: 角色
+                score:
+                  type: integer
+                  description: 积分值
+      responses:
+        "302":
+          description: 重定向到用户管理页
+
+  /admin/users/toggleRole:
+    post:
+      summary: 切换用户角色
+      description: 不允许管理员切换自己的角色。user↔admin互切
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            type: integer
+          description: 用户ID
+      responses:
+        "302":
+          description: 重定向到用户管理页
+
+  /admin/users/delete:
+    post:
+      summary: 删除用户
+      description: 不允许删除自己。有正常帖子(is_deleted=0)的用户不可删除
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            type: integer
+          description: 用户ID
+      responses:
+        "302":
+          description: 重定向到用户管理页
+
+  /admin/chart/postsByCategory:
+    get:
+      summary: 各板块帖子统计
+      description: 返回 JSON 格式，供 Chart.js 渲染
+      responses:
+        "200":
+          description: JSON
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  labels:
+                    type: array
+                    items:
+                      type: string
+                    example: ["技术交流", "生活杂谈"]
+                  data:
+                    type: array
+                    items:
+                      type: integer
+                    example: [15, 8]
+
+  /admin/chart/dailyPosts:
+    get:
+      summary: 近30天每日发帖量
+      responses:
+        "200":
+          description: JSON
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  labels:
+                    type: array
+                    items:
+                      type: string
+                      format: date
+                    example: ["2026-05-09", "2026-05-10"]
+                  data:
+                    type: array
+                    items:
+                      type: integer
+                    example: [3, 5]
+
+  /admin/chart/userGrowth:
+    get:
+      summary: 近7天用户注册量
+      responses:
+        "200":
+          description: JSON
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  labels:
+                    type: array
+                    items:
+                      type: string
+                      format: date
+                    example: ["2026-06-01", "2026-06-02"]
+                  data:
+                    type: array
+                    items:
+                      type: integer
+                    example: [1, 2]
+
+  # ======================================================
+  # 举报系统
+  # ======================================================
+  /report/submit:
+    post:
+      summary: 用户提交举报
+      description: 需登录。不能举报自己，同一用户对同一内容的 pending 举报仅允许一次
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [targetType, targetId, reason]
+              properties:
+                targetType:
+                  type: string
+                  enum: [post, reply, demand, demand_reply]
+                  description: 举报类型
+                targetId:
+                  type: integer
+                  description: 被举报对象ID
+                reason:
+                  type: string
+                  enum: [spam, abuse, illegal, porn, other]
+                  description: 举报原因
+      responses:
+        "200":
+          description: JSON
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                    example: 举报已提交，感谢您的反馈
+
+  /admin/report/list:
+    get:
+      summary: 管理员举报列表
+      description: 需 admin 角色。每页15条
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, all, approved, rejected]
+            default: pending
+          description: 筛选状态
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+          description: 页码
+      responses:
+        "200":
+          description: 举报管理 JSP 页面
+
+  /admin/report/preview:
+    get:
+      summary: 管理员预览被举报内容
+      description: 需 admin 角色。返回 HTML 片段
+      parameters:
+        - name: reportId
+          in: query
+          required: true
+          schema:
+            type: integer
+          description: 举报记录ID
+      responses:
+        "200":
+          description: HTML 片段(标题、内容截取200字、作者、状态)
+
+  /admin/report/handle:
+    post:
+      summary: 管理员处理举报
+      description: |
+        需 admin 角色。事务保证：
+        SELECT ... FOR UPDATE → 校验pending → 通过则SET is_deleted=1 → 更新状态 → 插入通知
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [reportId, action]
+              properties:
+                reportId:
+                  type: integer
+                  description: 举报记录ID
+                action:
+                  type: string
+                  enum: [approve, reject]
+                  description: 处理动作
+                handleNote:
+                  type: string
+                  maxLength: 200
+                  description: 处理备注
+      responses:
+        "302":
+          description: 重定向到举报管理页
+
+  # ======================================================
+  # 通知系统
+  # ======================================================
+  /notification/unreadCount:
+    get:
+      summary: 未读通知数
+      description: "未登录时返回 {\"count\": 0}，用于导航栏小红点(60s轮询)"
+      responses:
+        "200":
+          description: JSON
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+                    example: 3
+
+  /notification/list:
+    get:
+      summary: 通知列表
+      description: 需登录。分页显示，每页20条
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+          description: 页码
+      responses:
+        "200":
+          description: 通知列表 JSP 页面
+
+  /notification/markRead:
+    post:
+      summary: 标记已读
+      description: 传id标记单条，不传id标记当前用户全部通知为已读
+      parameters:
+        - name: id
+          in: query
+          schema:
+            type: integer
+          description: 通知ID(可选，不传则标记全部)
+      responses:
+        "302":
+          description: 重定向到通知列表页
+
+  /notification/detail:
+    get:
+      summary: 通知详情
+      description: 需登录，仅能查看自己的通知。自动标记为已读
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            type: integer
+          description: 通知ID
+      responses:
+        "200":
+          description: 通知详情 JSP 页面
+
+  # ======================================================
+  # 其他
+  # ======================================================
+  /category:
+    get:
+      summary: 板块帖子列表
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            type: integer
+          description: 板块ID
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+          description: 页码
+      responses:
+        "200":
+          description: 板块帖子列表 JSP 页面
+
+  /hot:
+    get:
+      summary: 热度榜
+      description: 按 view_count 降序排列
+      responses:
+        "200":
+          description: 热度榜 JSP 页面
+
+components:
+  schemas:
+    SessionUser:
+      type: object
+      description: sessionScope.user 结构
+      properties:
+        id:
+          type: integer
+          description: 用户ID
+        username:
+          type: string
+          description: 用户名
+        role:
+          type: string
+          enum: [user, admin]
+          description: 角色
+        phone:
+          type: string
+          description: 联系方式
+        jobType:
+          type: string
+          description: 工作性质
+        jobLocation:
+          type: string
+          description: 工作地点
+        avatar:
+          type: string
+          description: 头像路径
+        score:
+          type: integer
+          description: 当前积分
+        createdAt:
+          type: string
+          description: 注册时间
+      example:
+        id: 1
+        username: admin
+        role: admin
+        phone: "138xxx"
+        jobType: 学生
+        jobLocation: 北京
+        avatar: "/BBSForum/uploads/avatars/user_1_xxx.jpg"
+        score: 100
+        createdAt: "2026-06-06"
+
+    InteractionResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        action:
+          type: string
+        count:
+          type: integer
+        msg:
+          type: string
+
+    AiSummaryResponse:
+      type: object
+      properties:
+        summary:
+          type: string
+        error:
+          type: string
+
+    CheckinResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        score:
+          type: integer
+        consecutive:
+          type: integer
+        msg:
+          type: string
+
+    UploadImageResponse:
+      type: object
+      properties:
+        markdown:
+          type: string
+        url:
+          type: string
+
+    ReportSubmitResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+
+    ChartResponse:
+      type: object
+      properties:
+        labels:
+          type: array
+          items:
+            type: string
+        data:
+          type: array
+          items:
+            type: integer
+
+    UnreadCountResponse:
+      type: object
+      properties:
+        count:
+          type: integer
+
+  parameters:
+    PostId:
+      name: id
+      in: query
+      required: true
+      schema:
+        type: integer
+      description: 帖子ID
+    PageParam:
+      name: page
+      in: query
+      schema:
+        type: integer
+        default: 1
+      description: 页码
+
+x-tagGroups:
+  - name: 帖子模块
+    tags:
+      - 帖子
+  - name: 用户模块
+    tags:
+      - 用户
+  - name: 交互模块
+    tags:
+      - 交互
+  - name: 需求悬赏
+    tags:
+      - 需求
+  - name: 积分模块
+    tags:
+      - 积分
+  - name: 管理后台
+    tags:
+      - 管理后台
+  - name: 举报系统
+    tags:
+      - 举报
+  - name: 通知系统
+    tags:
+      - 通知
+  - name: 其他
+    tags:
+      - 其他

@@ -76,9 +76,9 @@
             </tr>
             </thead>
             <tbody class="divide-y divide-gray-100">
-            <c:forEach var="post" items="${postList}">
+            <c:forEach var="post" items="${postList}" varStatus="vs">
                 <tr class="hover:bg-blue-50/30 transition duration-150">
-                    <td class="px-5 py-3 text-sm text-gray-600">${post.id}</td>
+                    <td class="px-5 py-3 text-sm text-gray-600">${(currentPage - 1) * pageSize + vs.count}</td>
                     <td class="px-5 py-3">
                         <a href="${pageContext.request.contextPath}/post/detail?id=${post.id}"
                            class="text-blue-600 hover:text-blue-800 hover:underline text-sm font-medium">
@@ -115,6 +115,11 @@
                             <!-- 置顶表单 -->
                             <form method="post" action="${pageContext.request.contextPath}/admin/post/top" class="inline">
                                 <input type="hidden" name="id" value="${post.id}" />
+                                <input type="hidden" name="refPage" value="${currentPage}" />
+                                <c:if test="${not empty keyword}"><input type="hidden" name="refKeyword" value="${fn:escapeXml(keyword)}" /></c:if>
+                                <c:if test="${not empty author}"><input type="hidden" name="refAuthor" value="${fn:escapeXml(author)}" /></c:if>
+                                <c:if test="${not empty categoryId}"><input type="hidden" name="refCategoryId" value="${categoryId}" /></c:if>
+                                <input type="hidden" name="refSort" value="${sort}" />
                                 <button type="submit" class="p-1.5 text-amber-600 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 transition cursor-pointer"
                                         title="切换置顶状态">
                                     <i class="fa fa-arrow-up"></i>
@@ -123,6 +128,11 @@
                             <!-- 加精表单 -->
                             <form method="post" action="${pageContext.request.contextPath}/admin/post/elite" class="inline">
                                 <input type="hidden" name="id" value="${post.id}" />
+                                <input type="hidden" name="refPage" value="${currentPage}" />
+                                <c:if test="${not empty keyword}"><input type="hidden" name="refKeyword" value="${fn:escapeXml(keyword)}" /></c:if>
+                                <c:if test="${not empty author}"><input type="hidden" name="refAuthor" value="${fn:escapeXml(author)}" /></c:if>
+                                <c:if test="${not empty categoryId}"><input type="hidden" name="refCategoryId" value="${categoryId}" /></c:if>
+                                <input type="hidden" name="refSort" value="${sort}" />
                                 <button type="submit" class="p-1.5 text-pink-600 bg-pink-50 border border-pink-200 rounded-lg hover:bg-pink-100 transition cursor-pointer"
                                         title="切换精华状态">
                                     <i class="fa fa-diamond"></i>
@@ -130,17 +140,32 @@
                             </form>
                             <!-- 编辑链接 -->
                             <a href="${pageContext.request.contextPath}/post/edit?id=${post.id}"
+                               onclick="sessionStorage.setItem('adminPostMgrRef', location.href)"
                                class="p-1.5 text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition inline-flex items-center"
                                title="编辑帖子">
                                 <i class="fa fa-edit"></i>
                             </a>
+                            <!-- 删除 -->
+                            <form method="post" action="${pageContext.request.contextPath}/admin/post/delete" class="inline">
+                                <input type="hidden" name="id" value="${post.id}" />
+                                <input type="hidden" name="refPage" value="${currentPage}" />
+                                <c:if test="${not empty keyword}"><input type="hidden" name="refKeyword" value="${fn:escapeXml(keyword)}" /></c:if>
+                                <c:if test="${not empty author}"><input type="hidden" name="refAuthor" value="${fn:escapeXml(author)}" /></c:if>
+                                <c:if test="${not empty categoryId}"><input type="hidden" name="refCategoryId" value="${categoryId}" /></c:if>
+                                <input type="hidden" name="refSort" value="${sort}" />
+                                <button type="button" data-title="${fn:escapeXml(post.title)}" onclick="confirmDeletePost(this)"
+                                        class="p-1.5 text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition cursor-pointer"
+                                        title="删除帖子">
+                                    <i class="fa fa-trash-o"></i>
+                                </button>
+                            </form>
                         </div>
                     </td>
                 </tr>
             </c:forEach>
             <c:if test="${empty postList}">
                 <tr>
-                    <td colspan="7" class="px-5 py-12 text-center text-gray-400">
+                    <td colspan="8" class="px-5 py-12 text-center text-gray-400">
                         <i class="fa fa-inbox text-3xl mb-2 block"></i>
                         暂无帖子数据
                     </td>
@@ -181,3 +206,15 @@
         </c:if>
     </div>
 </c:if>
+
+<script>
+function confirmDeletePost(btn) {
+    var title = btn.getAttribute('data-title');
+    showConfirm('确定要删除帖子「' + title + '」吗？删除后不可恢复。').then(function(ok) {
+        if (ok) {
+            var form = btn.closest('form');
+            if (form) form.submit();
+        }
+    });
+}
+</script>

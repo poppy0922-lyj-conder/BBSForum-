@@ -25,9 +25,11 @@ import java.util.logging.Logger;
  * URL映射：
  *   GET  /admin/post/manage  — 帖子管理列表（分页+搜索+排序）
  *   POST /admin/post/top     — 切换置顶状态（0→1→2→0 循环）
+ *   POST /admin/post/top     — 切换置顶状态（0→1→2→0 循环）
  *   POST /admin/post/elite   — 切换加精状态（0→1→0 切换）
+ *   POST /admin/post/delete  — 删除帖子（软删除）
  */
-@WebServlet(name = "adminPost", urlPatterns = {"/admin/post/manage", "/admin/post/top", "/admin/post/elite"})
+@WebServlet(name = "adminPost", urlPatterns = {"/admin/post/manage", "/admin/post/top", "/admin/post/elite", "/admin/post/delete"})
 public class AdminPostServlet extends HttpServlet {
 
     private static final Logger LOG = Logger.getLogger(AdminPostServlet.class.getName());
@@ -54,6 +56,8 @@ public class AdminPostServlet extends HttpServlet {
             handleToggleTop(request, response);
         } else if ("/admin/post/elite".equals(path)) {
             handleToggleElite(request, response);
+        } else if ("/admin/post/delete".equals(path)) {
+            handleDelete(request, response);
         } else {
             response.sendRedirect(request.getContextPath() + "/admin");
         }
@@ -62,6 +66,11 @@ public class AdminPostServlet extends HttpServlet {
     /** 帖子管理列表（分页+搜索+排序） */
     private void handleManage(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
+
+        // 禁止浏览器缓存，确保删除后数字更新
+        response.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+        response.setHeader("Pragma", "no-cache");
+        response.setDateHeader("Expires", 0);
 
         int page = 1;
         try {
@@ -124,6 +133,34 @@ public class AdminPostServlet extends HttpServlet {
         request.getRequestDispatcher("/admin/post_manage.jsp").forward(request, response);
     }
 
+    /** 构建带筛选参数的重定向 URL */
+    private String buildManageRedirect(HttpServletRequest request) {
+        String ctx = request.getContextPath();
+        StringBuilder url = new StringBuilder(ctx + "/admin/post/manage");
+        String page = request.getParameter("refPage");
+        String keyword = request.getParameter("refKeyword");
+        String author = request.getParameter("refAuthor");
+        String catId = request.getParameter("refCategoryId");
+        String sort = request.getParameter("refSort");
+        boolean has = false;
+        if (page != null && !page.isEmpty()) {
+            url.append("?page=").append(page); has = true;
+        }
+        if (keyword != null && !keyword.isEmpty()) {
+            url.append(has ? "&" : "?").append("keyword=").append(keyword); has = true;
+        }
+        if (author != null && !author.isEmpty()) {
+            url.append(has ? "&" : "?").append("author=").append(author); has = true;
+        }
+        if (catId != null && !catId.isEmpty()) {
+            url.append(has ? "&" : "?").append("categoryId=").append(catId); has = true;
+        }
+        if (sort != null && !sort.isEmpty()) {
+            url.append(has ? "&" : "?").append("sort=").append(sort); has = true;
+        }
+        return url.toString();
+    }
+
     /** 切换置顶状态：0 → 1（板块置顶）→ 2（全局置顶）→ 0 循环 */
     private void handleToggleTop(HttpServletRequest request, HttpServletResponse response)
             throws IOException {
@@ -166,7 +203,7 @@ public class AdminPostServlet extends HttpServlet {
             LOG.log(Level.SEVERE, "切换置顶状态失败, postId=" + postId, e);
         }
 
-        response.sendRedirect(request.getContextPath() + "/admin/post/manage");
+        response.sendRedirect(buildManageRedirect(request));
     }
 
     /** 切换加精状态：0 ↔ 1 */
@@ -211,7 +248,7 @@ public class AdminPostServlet extends HttpServlet {
             LOG.log(Level.SEVERE, "切换加精状态失败, postId=" + postId, e);
         }
 
-        response.sendRedirect(request.getContextPath() + "/admin/post/manage");
+        response.sendRedirect(buildManageRedirect(request));
     }
 
     /** 统计帖子数（支持搜索） */
@@ -297,6 +334,32 @@ public class AdminPostServlet extends HttpServlet {
             LOG.log(Level.SEVERE, "加载帖子管理列表失败", e);
         }
         return list;
+    }
+
+    /** 删除帖子（软删除） */
+    private void handleDelete(HttpServletRequest request, HttpServletResponse response)
+            throws IOException {
+        int postId;
+        try {
+            postId = Integer.parseInt(request.getParameter("id"));
+        } catch (NumberFormatException e) {
+            response.sendRedirect(request.getContextPath() + "/admin/post/manage");
+            return;
+        }
+
+        String sql = "UPDATE posts SET is_deleted = 1 WHERE id = ? AND is_deleted = 0";
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, postId);
+            int updated = ps.executeUpdate();
+            if (updated > 0) {
+                LOG.info("管理员删除帖子: postId=" + postId);
+            }
+        } catch (SQLException e) {
+            LOG.log(Level.SEVERE, "删除帖子失败, postId=" + postId, e);
+        }
+
+        response.sendRedirect(buildManageRedirect(request));
     }
 
     /** 加载板块列表（供筛选使用） */

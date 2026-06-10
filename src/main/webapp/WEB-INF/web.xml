@@ -21,4 +21,63 @@
         <error-code>500</error-code>
         <location>/error/500.jsp</location>
     </error-page>
+
+    <!-- Servlet 声明（用于嵌入式 Tomcat java -jar 部署） -->
+    <servlet>
+        <servlet-name>HomeServlet</servlet-name>
+        <servlet-class>com.bbs.controller.HomeServlet</servlet-class>
+    </servlet>
+    <servlet>
+        <servlet-name>CategoryServlet</servlet-name>
+        <servlet-class>com.bbs.controller.CategoryServlet</servlet-class>
+    </servlet>
+    <servlet>
+        <servlet-name>PostServlet</servlet-name>
+        <servlet-class>com.bbs.controller.PostServlet</servlet-class>
+    </servlet>
+    <servlet>
+        <servlet-name>UserServlet</servlet-name>
+        <servlet-class>com.bbs.controller.UserServlet</servlet-class>
+    </servlet>
+    <servlet>
+        <servlet-name>UserProfileServlet</servlet-name>
+        <servlet-class>com.bbs.controller.UserProfileServlet</servlet-class>
+    </servlet>
+    <servlet>
+        <servlet-name>AdminCategoryServlet</servlet-name>
+        <servlet-class>com.bbs.controller.AdminCategoryServlet</servlet-class>
+    </servlet>
+
+    <servlet-mapping>
+        <servlet-name>HomeServlet</servlet-name>
+        <url-pattern>/index</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>CategoryServlet</servlet-name>
+        <url-pattern>/category</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>PostServlet</servlet-name>
+        <url-pattern>/post/*</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>UserServlet</servlet-name>
+        <url-pattern>/user/login</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>UserServlet</servlet-name>
+        <url-pattern>/user/register</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>UserProfileServlet</servlet-name>
+        <url-pattern>/user/profile</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>UserProfileServlet</servlet-name>
+        <url-pattern>/user/profile/edit</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>AdminCategoryServlet</servlet-name>
+        <url-pattern>/admin/categories</url-pattern>
+    </servlet-mapping>
 </web-app>

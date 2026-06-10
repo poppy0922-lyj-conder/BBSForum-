@@ -254,7 +254,11 @@
     // 存储上一页地址到 sessionStorage，解决 PRG 后"返回"问题
     (function() {
         if (!sessionStorage.getItem('bbs_back') && document.referrer) {
-            sessionStorage.setItem('bbs_back', document.referrer);
+            var ref = document.referrer;
+            // 忽略来自发帖/编辑页的重定向（PRG 模式），改从历史回退
+            if (ref.indexOf('/post/create') === -1 && ref.indexOf('/post/edit') === -1) {
+                sessionStorage.setItem('bbs_back', document.referrer);
+            }
         }
     })();
     function goBack() {

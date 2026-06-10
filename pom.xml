@@ -109,7 +109,7 @@
                 <artifactId>maven-war-plugin</artifactId>
                 <version>3.3.2</version>
             </plugin>
-            <!-- 生成可执行 JAR（java -jar BBSForum.jar） -->
+            <!-- 生成可执行 JAR（java -jar BBSForum-exec.jar） -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
@@ -125,7 +125,20 @@
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                                     <mainClass>com.bbs.Main</mainClass>
                                 </transformer>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ApacheLicenseResourceTransformer"/>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ApacheNoticeResourceTransformer"/>
                             </transformers>
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
                             <finalName>${project.artifactId}-exec</finalName>
                             <outputFile>${project.build.directory}/${project.artifactId}-exec.jar</outputFile>
                         </configuration>

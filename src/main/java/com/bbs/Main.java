@@ -11,27 +11,52 @@ import java.io.File;
 /**
  * BBS论坛系统 - 唯一启动入口
  * 右键此类 → Run 'Main' 即可启动
+ * <p>
+ * 部署模式：java -jar BBSForum-exec.jar
+ * 默认查找 ./webapp/ 目录作为 JSP 资源目录
+ * 也可通过 -Dwebapp.dir=/path/to/webapp 指定
  */
 public class Main {
 
     public static void main(String[] args) throws Exception {
-        int port = 8088;
+        int port = 80;
 
-        // 找项目根目录
-        File projectRoot = new File(System.getProperty("user.dir"));
-        // 如果当前目录是子目录，向上找
-        while (projectRoot != null && !new File(projectRoot, "src/main/webapp").exists()) {
-            projectRoot = projectRoot.getParentFile();
+        // 1. 优先从系统属性取 webapp 目录
+        String webappPath = System.getProperty("webapp.dir");
+        File webappDir = null;
+
+        if (webappPath != null && !webappPath.isEmpty()) {
+            webappDir = new File(webappPath);
+            if (!webappDir.exists()) {
+                System.err.println("错误：指定的 webapp.dir 目录不存在: " + webappDir.getAbsolutePath());
+                System.exit(1);
+            }
+        } else {
+            // 2. 找当前目录下的 webapp/（生产部署：JAR 同级的 webapp 目录）
+            File cwd = new File(System.getProperty("user.dir"));
+            File prodWebapp = new File(cwd, "webapp");
+            if (prodWebapp.exists()) {
+                webappDir = prodWebapp;
+            } else {
+                // 3. 向上找 src/main/webapp（开发模式）
+                File projectRoot = cwd;
+                while (projectRoot != null && !new File(projectRoot, "src/main/webapp").exists()) {
+                    projectRoot = projectRoot.getParentFile();
+                }
+                if (projectRoot != null) {
+                    webappDir = new File(projectRoot, "src/main/webapp");
+                }
+            }
         }
 
-        if (projectRoot == null || !new File(projectRoot, "src/main/webapp").exists()) {
-            System.err.println("错误：找不到 src/main/webapp 目录！");
-            System.err.println("请在 IDE 中右键 Main.java → Run，不要直接 java -jar");
+        if (webappDir == null || !webappDir.exists()) {
+            System.err.println("错误：找不到 webapp 目录！");
+            System.err.println("生产部署：将 webapp 目录放在 JAR 同级的 webapp/ 下");
+            System.err.println("或通过 -Dwebapp.dir=/path/to/webapp 指定");
+            System.err.println("开发模式：在 IDE 中右键 Main.java → Run");
             System.exit(1);
         }
 
-        File webappDir = new File(projectRoot, "src/main/webapp");
-        System.out.println("项目根目录: " + projectRoot.getAbsolutePath());
         System.out.println("Web资源目录: " + webappDir.getAbsolutePath());
 
         Tomcat tomcat = new Tomcat();
@@ -41,12 +66,14 @@ public class Main {
         // 创建 context
         String contextPath = "/BBSForum";
         StandardContext ctx = (StandardContext) tomcat.addWebapp(contextPath, webappDir.getAbsolutePath());
-        ctx.setReloadable(true);
+        ctx.setReloadable(false);
 
-        // 让 Tomcat 能加载 WEB-INF/classes 中的类
-        File classesDir = new File(projectRoot, "target/classes");
+        // 尝试添加 target/classes（开发模式），不存在则跳过
+        File classesDir = new File(webappDir.getParentFile().getParentFile(), "target/classes");
         WebResourceRoot resources = new StandardRoot(ctx);
-        resources.addPreResources(new DirResourceSet(resources, "/WEB-INF/classes", classesDir.getAbsolutePath(), "/"));
+        if (classesDir.exists()) {
+            resources.addPreResources(new DirResourceSet(resources, "/WEB-INF/classes", classesDir.getAbsolutePath(), "/"));
+        }
         ctx.setResources(resources);
 
         tomcat.start();

@@ -101,9 +101,8 @@ public class UserServlet extends HttpServlet {
                     Timestamp createdAt = rs.getTimestamp("created_at");
                     user.put("createdAt", createdAt == null ? "" : createdAt.toString());
 
-                    // 防止 Session Fixation：先更换 SessionId，再获取新 session 存储用户信息
-                    request.changeSessionId();
-                    HttpSession session = request.getSession();
+                    // 防止 Session Fixation：创建新 session 存储用户信息
+                    HttpSession session = request.getSession(true);
                     session.setAttribute("user", user);
 
                     // 每日首次登录积分奖励

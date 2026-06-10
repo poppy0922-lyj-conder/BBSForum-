@@ -74,6 +74,12 @@ public class AdminUserServlet extends HttpServlet {
     /** 用户列表（分页+搜索） */
     private void handleList(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
+
+        // 禁止浏览器缓存，确保删除后数字更新
+        response.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+        response.setHeader("Pragma", "no-cache");
+        response.setDateHeader("Expires", 0);
+
         int page = 1;
         try {
             String pageStr = request.getParameter("page");
@@ -101,6 +107,7 @@ public class AdminUserServlet extends HttpServlet {
         request.setAttribute("currentPage", page);
         request.setAttribute("totalPages", totalPages);
         request.setAttribute("totalUsers", totalUsers);
+        request.setAttribute("pageSize", PAGE_SIZE);
         request.setAttribute("keyword", keyword);
 
         request.getRequestDispatcher("/admin/users.jsp").forward(request, response);
@@ -188,6 +195,22 @@ public class AdminUserServlet extends HttpServlet {
         response.sendRedirect(request.getContextPath() + "/admin/users");
     }
 
+    /** 构建带参数的用户管理重定向 URL */
+    private String buildUserRedirect(HttpServletRequest request) {
+        String ctx = request.getContextPath();
+        StringBuilder url = new StringBuilder(ctx + "/admin/users");
+        String page = request.getParameter("refPage");
+        String keyword = request.getParameter("refKeyword");
+        boolean has = false;
+        if (page != null && !page.isEmpty()) {
+            url.append("?page=").append(page); has = true;
+        }
+        if (keyword != null && !keyword.isEmpty()) {
+            url.append(has ? "&" : "?").append("keyword=").append(keyword);
+        }
+        return url.toString();
+    }
+
     /** 切换用户角色 */
     private void handleToggleRole(HttpServletRequest request, HttpServletResponse response)
             throws IOException {
@@ -243,10 +266,10 @@ public class AdminUserServlet extends HttpServlet {
             LOG.log(Level.SEVERE, "切换用户角色失败, id=" + id, e);
         }
 
-        response.sendRedirect(request.getContextPath() + "/admin/users");
+        response.sendRedirect(buildUserRedirect(request));
     }
 
-    /** 删除用户 */
+    /** 删除用户（事务性级联删除） */
     private void handleDelete(HttpServletRequest request, HttpServletResponse response)
             throws IOException {
         int id;
@@ -268,33 +291,69 @@ public class AdminUserServlet extends HttpServlet {
             }
         }
 
-        // 检查是否有帖子（FK约束会阻止删除）
-        try (Connection conn = DBUtil.getConnection();
-             PreparedStatement ps = conn.prepareStatement("SELECT COUNT(*) FROM posts WHERE user_id = ? AND is_deleted = 0")) {
-            ps.setInt(1, id);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next() && rs.getInt(1) > 0) {
-                    response.sendRedirect(request.getContextPath() + "/admin/users?error=hasPosts");
-                    return;
+        // 事务性级联删除：从"叶子"表到"根"表，满足外键约束
+        Connection conn = null;
+        try {
+            conn = DBUtil.getConnection();
+            conn.setAutoCommit(false);
+
+            // 1. 活动/关联表（不被其他表引用）
+            execUpdate(conn, "DELETE FROM post_likes WHERE user_id = ?", id);
+            execUpdate(conn, "DELETE FROM post_favorites WHERE user_id = ?", id);
+            execUpdate(conn, "DELETE FROM user_follows WHERE user_id = ? OR followed_user_id = ?", id, id);
+            execUpdate(conn, "DELETE FROM notifications WHERE user_id = ?", id);
+            execUpdate(conn, "DELETE FROM score_logs WHERE user_id = ?", id);
+            execUpdate(conn, "DELETE FROM daily_checkins WHERE user_id = ?", id);
+            execUpdate(conn, "DELETE FROM reports WHERE reporter_id = ? OR handler_id = ?", id, id);
+
+            // 2. 需求相关
+            execUpdate(conn, "DELETE FROM demand_replies WHERE user_id = ?", id);
+            execUpdate(conn, "UPDATE demands SET is_deleted = 1 WHERE user_id = ?", id);
+            // 需求软删除后移除 user_id 引用以满足 FK（设为已注销用户 id=1）
+            execUpdate(conn, "UPDATE demands SET user_id = 1 WHERE user_id = ?", id);
+
+            // 3. 回复：软删除并解除 user_id FK 引用
+            execUpdate(conn, "UPDATE replies SET is_deleted = 1 WHERE user_id = ?", id);
+            execUpdate(conn, "UPDATE replies SET user_id = 1 WHERE user_id = ?", id);
+
+            // 4. 帖子：软删除并解除 user_id FK 引用
+            execUpdate(conn, "UPDATE posts SET is_deleted = 1 WHERE user_id = ?", id);
+            execUpdate(conn, "UPDATE posts SET user_id = 1 WHERE user_id = ?", id);
+
+            // 5. 删除用户
+            execUpdate(conn, "DELETE FROM users WHERE id = ?", id);
+
+            conn.commit();
+            LOG.info("用户已级联删除: id=" + id);
+        } catch (SQLException e) {
+            if (conn != null) {
+                try { conn.rollback(); } catch (SQLException ex) { LOG.log(Level.WARNING, "回滚失败", ex); }
+            }
+            LOG.log(Level.SEVERE, "删除用户失败, id=" + id, e);
+            response.sendRedirect(request.getContextPath() + "/admin/users?error=deleteFailed");
+            return;
+        } finally {
+            if (conn != null) {
+                try { conn.setAutoCommit(true); } catch (SQLException e) { /* ignore */ }
+                try { conn.close(); } catch (SQLException e) { /* ignore */ }
+            }
+        }
+
+        response.sendRedirect(buildUserRedirect(request));
+    }
+
+    /** 通用 SQL 更新辅助方法 */
+    private void execUpdate(Connection conn, String sql, Object... params) throws SQLException {
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            for (int i = 0; i < params.length; i++) {
+                if (params[i] instanceof Integer) {
+                    ps.setInt(i + 1, (Integer) params[i]);
+                } else {
+                    ps.setString(i + 1, (String) params[i]);
                 }
             }
-        } catch (SQLException e) {
-            LOG.log(Level.SEVERE, "检查用户帖子失败, id=" + id, e);
-            response.sendRedirect(request.getContextPath() + "/admin/users");
-            return;
-        }
-
-        // 执行删除
-        try (Connection conn = DBUtil.getConnection();
-             PreparedStatement ps = conn.prepareStatement("DELETE FROM users WHERE id = ?")) {
-            ps.setInt(1, id);
             ps.executeUpdate();
-            LOG.info("用户已删除: id=" + id);
-        } catch (SQLException e) {
-            LOG.log(Level.SEVERE, "删除用户失败, id=" + id, e);
         }
-
-        response.sendRedirect(request.getContextPath() + "/admin/users");
     }
 
     /** 统计用户数 */
@@ -325,7 +384,7 @@ public class AdminUserServlet extends HttpServlet {
         if (keyword != null) {
             sql += " WHERE username LIKE ?";
         }
-        sql += " ORDER BY created_at DESC LIMIT ? OFFSET ?";
+        sql += " ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?";
 
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {

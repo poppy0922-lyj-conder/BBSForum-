@@ -62,8 +62,9 @@
         <!-- 最近积分记录模块 -->
         <div class="border-t border-gray-100 mt-1 pt-3 pb-3 px-4">
             <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">最近积分记录</h4>
+            <c:set var="_sideLogs" value="${not empty sidebarScoreLogs ? sidebarScoreLogs : scoreLogs}" />
             <c:choose>
-                <c:when test="${empty scoreLogs}">
+                <c:when test="${empty _sideLogs}">
                     <p class="text-xs text-gray-400 py-2">暂无记录</p>
                 </c:when>
                 <c:otherwise>
@@ -76,7 +77,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <c:forEach var="log" items="${scoreLogs}">
+                            <c:forEach var="log" items="${_sideLogs}">
                                 <tr class="border-b border-gray-50">
                                     <td class="py-1.5 text-gray-500">${fn:substring(log.createdAt, 0, 10)}</td>
                                     <td class="py-1.5 font-semibold ${log.score > 0 ? 'text-green-500' : 'text-red-500'}">

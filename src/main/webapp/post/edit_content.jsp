@@ -2,8 +2,31 @@
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 
+<script>
+// 从管理员帖子管理进入时，改写面包屑和取消按钮的返回链接
+(function() {
+    var ref = sessionStorage.getItem('adminPostMgrRef');
+    if (ref) {
+        // 通知服务器：来自管理员入口
+        var input = document.getElementById('editFromAdmin');
+        if (input) input.value = '1';
+
+        document.addEventListener('DOMContentLoaded', function() {
+            var links = document.querySelectorAll('.breadcrumb-nav a');
+            if (links.length >= 2) {
+                links[1].href = ref;
+                links[1].textContent = '帖子管理';
+            }
+            // 取消按钮也指向帖子管理页
+            var cancelBtn = document.querySelector('a[href*="/post/detail"]');
+            if (cancelBtn) cancelBtn.href = ref;
+        });
+    }
+})();
+</script>
+
 <!-- 面包屑 -->
-<div class="flex items-center gap-2 text-sm text-gray-400 mb-4">
+<div class="flex items-center gap-2 text-sm text-gray-400 mb-4 breadcrumb-nav">
     <a href="${pageContext.request.contextPath}/" class="text-gray-500 hover:text-blue-500 no-underline">首页</a>
     <span>/</span>
     <a href="${pageContext.request.contextPath}/post/detail?id=${post.id}" class="text-gray-500 hover:text-blue-500 no-underline">帖子详情</a>
@@ -26,6 +49,7 @@
     <form action="${pageContext.request.contextPath}/post/edit" method="post" enctype="multipart/form-data" id="editForm">
         <input type="hidden" name="id" value="${post.id}">
         <input type="hidden" name="action" id="editAction" value="save">
+        <input type="hidden" name="fromAdmin" id="editFromAdmin" value="">
 
         <!-- 板块选择 -->
         <div class="mb-4">
