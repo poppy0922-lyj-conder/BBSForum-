@@ -131,7 +131,7 @@
 </article>
 
 <!-- 回复列表 -->
-<section class="mb-6">
+<section class="mb-6" id="replies-section">
     <h3 class="text-lg font-semibold text-gray-900 mb-4">
         <i class="fa fa-comments mr-1"></i> 回复（${replyCount}）
     </h3>
@@ -145,7 +145,7 @@
         <c:otherwise>
             <div class="space-y-3">
                 <c:forEach var="reply" items="${replyList}">
-                    <div class="bg-white rounded-lg border border-gray-100 ${not empty reply.parentId ? 'ml-8 border-l-2 border-l-blue-200 bg-gray-50/50 px-4 py-3' : 'p-5 shadow-sm'}">
+                    <div id="reply-${reply.id}" class="bg-white rounded-lg border border-gray-100 ${not empty reply.parentId ? 'ml-8 border-l-2 border-l-blue-200 bg-gray-50/50 px-4 py-3' : 'p-5 shadow-sm'}">
                         <div class="flex items-center gap-3 mb-3">
                             <span class="relative inline-flex">
                                 <img src="${reply.authorAvatar}" alt=""
@@ -568,4 +568,30 @@ function cancelReply() {
     document.getElementById('replyTargetName').textContent = '';
     document.getElementById('replyContent').focus();
 }
+
+// ========== 回复后自动定位到刚发表的回复 ==========
+(function() {
+    var hash = window.location.hash;
+    if (hash && hash.startsWith('#reply-')) {
+        var target = document.getElementById(hash.substring(1));
+        if (target) {
+            setTimeout(function() {
+                target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                // 高亮闪烁提示
+                target.style.transition = 'background 1s';
+                target.style.background = '#fef3c7';
+                setTimeout(function() {
+                    target.style.background = '';
+                }, 1500);
+            }, 100);
+        }
+    } else if (hash === '#replies-section') {
+        var section = document.getElementById('replies-section');
+        if (section) {
+            setTimeout(function() {
+                section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 100);
+        }
+    }
+})();
 </script>

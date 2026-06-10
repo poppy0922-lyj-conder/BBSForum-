@@ -220,12 +220,20 @@ public class PostServlet extends HttpServlet {
                 for (Map<String, Object> parent : parentReplies) {
                     parent.put("floor", floor++);
                     replyList.add(parent);
-                    int parentId = (int) parent.get("id");
-                    List<Map<String, Object>> children = childrenMap.get(parentId);
-                    if (children != null) {
-                        for (Map<String, Object> child : children) {
-                            child.put("floor", floor++);
-                            replyList.add(child);
+                    // BFS 逐层处理所有嵌套回复（支持任意深度嵌套）
+                    List<Map<String, Object>> queue = new ArrayList<>();
+                    queue.add(parent);
+                    int head = 0;
+                    while (head < queue.size()) {
+                        Map<String, Object> current = queue.get(head++);
+                        int currentId = (int) current.get("id");
+                        List<Map<String, Object>> children = childrenMap.get(currentId);
+                        if (children != null) {
+                            for (Map<String, Object> child : children) {
+                                child.put("floor", floor++);
+                                replyList.add(child);
+                                queue.add(child); // 继续检查子回复的子回复
+                            }
                         }
                     }
                 }
@@ -450,9 +458,10 @@ public class PostServlet extends HttpServlet {
             }
         }
 
+        int newReplyId = 0;
         String sql = "INSERT INTO replies (content, user_id, post_id, parent_id) VALUES (?, ?, ?, ?)";
         try (Connection conn = DBUtil.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+             PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             ps.setString(1, content.trim());
             ps.setInt(2, userId);
             ps.setInt(3, postId);
@@ -462,7 +471,15 @@ public class PostServlet extends HttpServlet {
                 ps.setNull(4, java.sql.Types.INTEGER);
             }
             ps.executeUpdate();
-            LOG.info("新回复成功, postId=" + postId + ", 用户=" + user.get("username") + ", parentId=" + parentId);
+
+            // 获取新生成的回复 ID，用于跳转定位
+            try (ResultSet generatedKeys = ps.getGeneratedKeys()) {
+                if (generatedKeys.next()) {
+                    newReplyId = generatedKeys.getInt(1);
+                }
+            }
+
+            LOG.info("新回复成功, postId=" + postId + ", 用户=" + user.get("username") + ", parentId=" + parentId + ", replyId=" + newReplyId);
 
             // 回复 +2 积分
             addScore(userId, 2, "回复帖子");
@@ -523,7 +540,8 @@ public class PostServlet extends HttpServlet {
             LOG.log(Level.SEVERE, "发表回复失败, postId=" + postId, e);
         }
 
-        response.sendRedirect(request.getContextPath() + "/post/detail?id=" + postId);
+        String anchor = newReplyId > 0 ? "#reply-" + newReplyId : "#replies-section";
+        response.sendRedirect(request.getContextPath() + "/post/detail?id=" + postId + anchor);
     }
 
     /** 显示编辑表单（需登录且是作者或管理员） */
