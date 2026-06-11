@@ -253,7 +253,7 @@ public class AdminPostServlet extends HttpServlet {
 
     /** 统计帖子数（支持搜索） */
     private int countPosts(String keyword, String author, Integer categoryId) {
-        StringBuilder sql = new StringBuilder("SELECT COUNT(*) FROM posts p JOIN users u ON p.user_id = u.id JOIN categories c ON p.category_id = c.id WHERE 1=1 AND p.is_deleted = 0");
+        StringBuilder sql = new StringBuilder("SELECT COUNT(*) FROM posts p JOIN users u ON p.user_id = u.id JOIN categories c ON p.category_id = c.id WHERE 1=1 AND p.is_deleted = 0 AND p.is_draft = 0");
         if (keyword != null) {
             sql.append(" AND (p.title LIKE ? OR p.content LIKE ?)");
         }
@@ -296,7 +296,7 @@ public class AdminPostServlet extends HttpServlet {
             "u.username AS author_name, u.avatar AS author_avatar, c.name AS category_name " +
             "FROM posts p " +
             "JOIN users u ON p.user_id = u.id " +
-            "JOIN categories c ON p.category_id = c.id WHERE 1=1 AND p.is_deleted = 0"
+            "JOIN categories c ON p.category_id = c.id WHERE 1=1 AND p.is_deleted = 0 AND p.is_draft = 0"
         );
         if (keyword != null) {
             sql.append(" AND (p.title LIKE ? OR p.content LIKE ?)");

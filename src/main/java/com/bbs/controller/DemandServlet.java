@@ -236,6 +236,28 @@ public class DemandServlet extends HttpServlet {
 
             // 回复 +2 积分
             addScore(userId, 2, "回复需求");
+
+            // 通知需求发布者
+            String authorSql = "SELECT user_id FROM demands WHERE id = ?";
+            try (PreparedStatement ps2 = conn.prepareStatement(authorSql)) {
+                ps2.setInt(1, demandId);
+                try (ResultSet rs = ps2.executeQuery()) {
+                    if (rs.next()) {
+                        int authorId = rs.getInt("user_id");
+                        if (authorId != userId) {
+                            String contentShort = content.trim().length() > 30 ? content.trim().substring(0, 30) + "..." : content.trim();
+                            String notifSql = "INSERT INTO notifications (user_id, type, content, target_url) VALUES (?, ?, ?, ?)";
+                            try (PreparedStatement ps3 = conn.prepareStatement(notifSql)) {
+                                ps3.setInt(1, authorId);
+                                ps3.setString(2, "demand_reply");
+                                ps3.setString(3, "用户 " + user.get("username") + " 回复了你的需求「" + contentShort + "」");
+                                ps3.setString(4, "/demand/detail?id=" + demandId);
+                                ps3.executeUpdate();
+                            }
+                        }
+                    }
+                }
+            }
         } catch (SQLException e) {
             LOG.log(Level.SEVERE, "需求回复失败, demandId=" + demandId, e);
         }
@@ -333,6 +355,16 @@ public class DemandServlet extends HttpServlet {
                     ps.setInt(1, replyUserId);
                     ps.setInt(2, demandScore);
                     ps.setString(3, "回复被采纳，获得悬赏 " + demandScore + " 积分");
+                    ps.executeUpdate();
+                }
+
+                // 5. 发送通知给被采纳者
+                String notifSql = "INSERT INTO notifications (user_id, type, content, target_url) VALUES (?, ?, ?, ?)";
+                try (PreparedStatement ps = conn.prepareStatement(notifSql)) {
+                    ps.setInt(1, replyUserId);
+                    ps.setString(2, "reply_accepted");
+                    ps.setString(3, "你的回复被采纳，获得悬赏 " + demandScore + " 积分");
+                    ps.setString(4, "/demand/detail?id=" + demandId);
                     ps.executeUpdate();
                 }
             }

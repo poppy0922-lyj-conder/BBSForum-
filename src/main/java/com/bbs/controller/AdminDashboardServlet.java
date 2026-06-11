@@ -52,7 +52,7 @@ public class AdminDashboardServlet extends HttpServlet {
         StringBuilder sb = new StringBuilder("{\"labels\":[");
         StringBuilder data = new StringBuilder("\"data\":[");
         String sql = "SELECT c.name, COUNT(p.id) AS cnt FROM categories c " +
-                     "LEFT JOIN posts p ON c.id = p.category_id AND p.is_deleted = 0 " +
+                     "LEFT JOIN posts p ON c.id = p.category_id AND p.is_deleted = 0 AND p.is_draft = 0 " +
                      "GROUP BY c.id, c.name ORDER BY cnt DESC";
 
         boolean first = true;
@@ -77,7 +77,7 @@ public class AdminDashboardServlet extends HttpServlet {
         StringBuilder sb = new StringBuilder("{\"labels\":[");
         StringBuilder data = new StringBuilder("\"data\":[");
         String sql = "SELECT DATE(created_at) AS d, COUNT(*) AS cnt FROM posts " +
-                     "WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) AND is_deleted = 0 " +
+                     "WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) AND is_deleted = 0 AND is_draft = 0 " +
                      "GROUP BY DATE(created_at) ORDER BY d";
 
         boolean first = true;

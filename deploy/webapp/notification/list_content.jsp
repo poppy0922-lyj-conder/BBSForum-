@@ -67,6 +67,11 @@
                                         <i class="fa fa-bookmark text-sm"></i>
                                     </span>
                                 </c:when>
+                                <c:when test="${notif.type == 'reply_accepted'}">
+                                    <span class="w-8 h-8 bg-purple-100 text-purple-500 rounded-full flex items-center justify-center">
+                                        <i class="fa fa-trophy text-sm"></i>
+                                    </span>
+                                </c:when>
                                 <c:otherwise>
                                     <span class="w-8 h-8 bg-gray-100 text-gray-500 rounded-full flex items-center justify-center">
                                         <i class="fa fa-info-circle text-sm"></i>

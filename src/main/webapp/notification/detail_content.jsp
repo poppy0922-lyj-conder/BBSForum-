@@ -42,6 +42,16 @@
                             <i class="fa fa-bookmark text-xl"></i>
                         </span>
                     </c:when>
+                    <c:when test="${notification.type == 'reply_accepted'}">
+                        <span class="w-12 h-12 bg-purple-100 text-purple-500 rounded-full flex items-center justify-center">
+                            <i class="fa fa-trophy text-xl"></i>
+                        </span>
+                    </c:when>
+                    <c:when test="${notification.type == 'demand_reply'}">
+                        <span class="w-12 h-12 bg-orange-100 text-orange-500 rounded-full flex items-center justify-center">
+                            <i class="fa fa-gift text-xl"></i>
+                        </span>
+                    </c:when>
                     <c:otherwise>
                         <span class="w-12 h-12 bg-gray-100 text-gray-500 rounded-full flex items-center justify-center">
                             <i class="fa fa-info-circle text-xl"></i>
@@ -57,6 +67,8 @@
                         <c:when test="${notification.type == 'new_reply'}">新回复</c:when>
                         <c:when test="${notification.type == 'new_like'}">点赞通知</c:when>
                         <c:when test="${notification.type == 'new_favorite'}">收藏通知</c:when>
+                        <c:when test="${notification.type == 'reply_accepted'}">采纳通知</c:when>
+                        <c:when test="${notification.type == 'demand_reply'}">需求回复通知</c:when>
                         <c:otherwise>系统通知</c:otherwise>
                     </c:choose>
                 </h3>

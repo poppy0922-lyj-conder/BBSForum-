@@ -124,14 +124,14 @@
 - **右侧面板**：在支持侧边栏的页面显示
   - **上半部分**：实时数据面板，展示帖子总数、评论总数、用户总数、需求总数
   - **下半部分**：热门标签，从帖子关键词中聚合统计，显示使用频率最高的前 8 个标签
-  - 数据通过 `StatsFilter` 缓存，15秒自动刷新
+  - 数据通过 `StatsFilter` 缓存，5秒自动刷新
 - **侧边栏导航**：积分排行、需求悬赏等入口
 
 **相关文件**：
 - `src/main/java/com/bbs/util/StatsFilter.java` — 数据统计过滤器（缓存+刷新机制）
 - `src/main/webapp/layouts/main.jsp` — 实时数据面板+热门标签视图
 
-### 9. v2.0 优化项
+### v2.0 优化项
 
 | 优化项 | 说明 |
 |--------|------|
@@ -187,8 +187,9 @@
 
 | URL | 方法 | 功能 | 参数 | 返回 |
 |-----|------|------|------|------|
-| `/hot` | GET | 热度榜 | 无 | 热度榜 JSP |
+| `/hot` | GET | 热度榜 | `page`(可选,页码) | 热度榜 JSP |
 | `/post/search` | GET | 搜索帖子 | `keyword`(必填) `page`(可选) | 搜索结果 JSP |
+| `/api/stats` | GET | 实时统计数据 | 无 | JSON `{"postCount":N,"replyCount":N,"userCount":N,"demandCount":N,"maxCount":N}` |
 
 ### 关注列表（个人中心）
 
